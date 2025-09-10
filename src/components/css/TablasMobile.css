@@ -1,0 +1,62 @@
+.tablas-mobile {
+  margin: 0 auto;
+  padding: 20px;
+  max-width: 600px;
+}
+
+.search-container {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.search-input {
+  width: 200px;
+  padding: 10px;
+  border-radius: 5px;
+  border: 1px solid #ccc;
+}
+
+.cardmobiletable {
+  background-color: #fdfdfd;
+  border-radius: 10px;
+  padding: 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  color: rgb(0, 0, 0);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.cardmobiletable img {
+  width: 100%;
+  border-radius: 5px;
+  margin-bottom: 10px;
+}
+
+.pagination {
+  display: flex;
+  justify-content: center;
+  list-style: none;
+  padding: 0;
+}
+
+.pagination li {
+  margin: 0 5px;
+  padding: 10px 15px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  cursor: pointer;
+  background-color: white;
+}
+
+.pagination li.disabled {
+  pointer-events: none;
+  opacity: 0.5;
+}
+
+.pagination li:not(.disabled):hover {
+  background-color: #007bff;
+  color: white;
+  border: 1px solid #007bff;
+}

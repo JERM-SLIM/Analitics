@@ -1,0 +1,48 @@
+.card {
+  margin: 0 auto;
+  top: 3rem;
+  width: 90%;
+  max-width: 500px;
+  color: rgb(0, 0, 0);
+  background-color: rgb(255, 255, 255);
+}
+
+.reloadbtn {
+  font-size: 2.5rem;
+}
+.card-text {
+  text-align: center;
+}
+.idx-mobile {
+  margin: 0 auto;
+  width: 89%;
+  max-width: 500px;
+  background-color: #ffffff;
+  border-radius: 10px;
+  padding: 20px;
+  color: #000000;
+}
+.idx-mobile ul {
+  list-style: none;
+  padding: 0;
+  z-index: -1000;
+}
+
+@media (max-width: 768px) {
+  .card {
+    background: none;
+    border: none;
+    text-align: center;
+    z-index: -1000;
+  }
+  .btn {
+    margin-left: 2px;
+  }
+  .card-header {
+    color: black;
+    font-size: 20px;
+  }
+  .card-title {
+    display: none;
+  }
+}

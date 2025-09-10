@@ -1,0 +1,33 @@
+.zpl-converter {
+  background: linear-gradient(45deg, #56ab2f, #a8e063, #56ab2f, #a8e063);
+  background-size: 300% 300%;
+  color: white;
+  font-size: 10px;
+  padding: 6px 40px;
+  border: none;
+  border-radius: 50px;
+  cursor: pointer;
+  transition: all 0.4s ease;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.25);
+  animation: gradient 3s ease infinite;
+}
+.zpl-converter :hover {
+  background-position: right center;
+  transform: scale(1.1);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+}
+@keyframes gradient {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+.icono-ticket {
+  font-size: 2rem;
+  border-radius: 10px;
+}

@@ -1,0 +1,147 @@
+.sideBar {
+  display: block;
+  margin-right: 0;
+  float: left;
+  z-index: 1000;
+  transition: all 0.3s ease;
+}
+
+.menu-barra {
+  margin-left: 1rem;
+  font-size: 2rem;
+  color: #0f0f0f;
+  position: fixed;
+  top: 15px;
+  left: 15px;
+  z-index: 1001;
+  cursor: pointer;
+}
+
+.nav-menu {
+  width: 280px;
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  position: fixed;
+  top: 0;
+  left: -280px;
+  transition: 0.3s;
+  z-index: 1000;
+  box-shadow: 2px 0 5px rgba(0, 0, 0, 0.5);
+  overflow-y: auto;
+}
+
+.nav-menu.active {
+  left: 0;
+}
+
+.nav-text {
+  align-items: center;
+  padding: 20px 0;
+  list-style: none;
+  height: 60px;
+  margin: 0;
+}
+
+.nav-text a {
+  text-decoration: none;
+  color: #161616;
+  font-size: 18px;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  padding: 0 25px;
+  transition: 0.3s;
+  border-radius: 5px;
+}
+
+.nav-text a:hover {
+  background-color: #007bff;
+  color: #1f1e1e;
+  padding-left: 35px;
+}
+
+.nav-text-regresar {
+  width: 100%;
+  align-items: center;
+  color: #1b1a1a;
+  padding: 20px 0;
+  list-style: none;
+  height: 60px;
+  margin: 0;
+}
+
+.nav-text-regresar a {
+  text-decoration: none;
+  color: #1b1a1a;
+  font-size: 18px;
+  width: 90%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  padding: 0 25px;
+  transition: 0.3s;
+  border-radius: 5px;
+}
+
+.nav-text-regresar a:hover {
+  background-color: #28a745;
+  color: #000000;
+  padding-left: 35px;
+}
+
+.nav-menu-items {
+  background-color: #ffffff;
+  width: 100%;
+  padding: 0;
+}
+
+.sideBar-toggle {
+  width: 100%;
+  height: 80px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: #ffffff;
+  margin-bottom: 20px;
+}
+
+.item {
+  margin-left: 16px;
+}
+
+.ml,
+.am,
+.qa,
+.pq,
+.an,
+.gp {
+  font-size: 10px;
+}
+
+.contenedores-mobiles .menu-barra,
+.contenedores-laptops .menu-barra,
+.contenedores-desktops .menu-barra {
+  display: block;
+}
+
+.contenedores-mobiles .nav-menu {
+  width: 100%;
+  left: -100%;
+  top: 0;
+}
+
+.contenedores-laptops .nav-menu,
+.contenedores-desktops .nav-menu {
+  width: 280px;
+}
+
+.contenedores-mobiles .nav-menu.active {
+  left: 0;
+}
+
+.contenedores-laptops .nav-menu.active,
+.contenedores-desktops .nav-menu.active {
+  left: 0;
+}

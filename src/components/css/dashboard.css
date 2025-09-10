@@ -1,0 +1,213 @@
+/* Grafica Ventas General */
+.custom-paper-reclamos,
+.custom-paper {
+  padding: 12px;
+  background: linear-gradient(145deg, #ffffff, #f0f0f0);
+  box-shadow: 5px 5px 10px #d1d1d1, -5px -5px 10px #ffffff;
+  border-radius: 10px;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  width: 100%;
+  cursor: pointer;
+}
+
+.custom-paper-reclamos:hover,
+.custom-paper:hover {
+  transform: translateY(-5px);
+  box-shadow: 5px 5px 15px #c1c1c1, -5px -5px 15px #ffffff;
+}
+
+h4 {
+  font-family: "Roboto", sans-serif;
+  font-weight: 700;
+  color: #333;
+}
+
+h6 {
+  font-family: "Roboto", sans-serif;
+  font-weight: 500;
+  color: #666;
+}
+
+.modal-box {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 90%;
+  max-width: 1900px;
+  background-color: white;
+  border-radius: 10px;
+  box-shadow: 0px 0px 24px rgba(0, 0, 0, 0.5);
+  padding: 20px;
+  overflow-y: auto;
+  transition: opacity 0.3s ease;
+  opacity: 1;
+}
+
+.modal-content {
+  margin-bottom: 300px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  max-height: 500px;
+}
+
+.modal-chart {
+  width: 100%;
+}
+
+.modal-details {
+  width: 45%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+  border-left: 1px solid #ddd;
+}
+
+/* Grafica Mercado Libre */
+.custom-paper-ml {
+  padding: 20px;
+  background: linear-gradient(145deg, #fcfbd9, #f0f0f0);
+  box-shadow: 5px 5px 10px #eef7bc, -5px -5px 10px #ffffff;
+  border-radius: 10px;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  width: 100%;
+  cursor: pointer;
+}
+
+.custom-paper-ml:hover {
+  transform: translateY(-5px);
+  box-shadow: 5px 5px 15px #fbff04, -5px -5px 15px #d9e75d;
+}
+/* Fin Grafica Merlaco Libre */
+
+/* Grafica Shein */
+.custom-paper-sh {
+  padding: 20px;
+  background: linear-gradient(145deg, #c2c2c2, #d6d5d5);
+  box-shadow: 5px 5px 10px #868686, -5px -5px 10px #3d3d3d;
+  border-radius: 10px;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  width: 100%;
+  cursor: pointer;
+}
+
+.custom-paper-sh:hover {
+  transform: translateY(-5px);
+  box-shadow: 5px 5px 15px #000000, -5px -5px 15px #bdbdbd;
+}
+/* Fin de Grafica Shein */
+
+/* Grafica de Amazon */
+.custom-paper-am {
+  padding: 20px;
+  background: linear-gradient(145deg, #a1f4ff, #0c6bb8);
+  box-shadow: 5px 5px 10px #024e63, -5px -5px 10px #024ec0;
+  border-radius: 10px;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  width: 100%;
+  cursor: pointer;
+}
+
+.custom-paper-am:hover {
+  transform: translateY(-5px);
+  box-shadow: 5px 5px 15px #202b69, -5px -5px 15px #00444d;
+}
+/* Fin de Grafica de Amazon */
+
+/* Grafica Slim */
+.custom-paper-sl {
+  padding: 20px;
+  background: linear-gradient(145deg, #ffffff, #f0f0f0);
+  box-shadow: 5px 5px 10px #034406, -5px -5px 10px #39da5c;
+  border-radius: 10px;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  width: 100%;
+  cursor: pointer;
+  margin-bottom: 20px;
+}
+.custom-paper-sl:hover {
+  transform: translateY(-5px);
+  box-shadow: 5px 5px 15px #c1c1c1, -5px -5px 15px #ffffff;
+}
+.container {
+  margin-top: 50px;
+}
+.lineav {
+  border-left: thick solid #000000;
+  height: 100%;
+  left: 50%;
+  position: absolute;
+}
+.custom-paper-ac {
+  padding: 20px;
+  background: linear-gradient(145deg, #ffffff, #f0f0f0);
+  box-shadow: 5px 5px 10px #d1d1d1, -5px -5px 10px #ffffff;
+  border-radius: 10px;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  width: 100%;
+  cursor: pointer;
+  margin-top: 20px;
+  margin-bottom: 20px;
+}
+.custom-paper-ac:hover {
+  transform: translateY(-5px);
+  box-shadow: 5px 5px 15px #c1c1c1, -5px -5px 15px #ffffff;
+}
+.custom-paper-ref {
+  padding: 20px;
+  background: linear-gradient(145deg, #ffffff, #f0f0f0);
+  box-shadow: 5px 5px 10px #d1d1d1, -5px -5px 10px #ffffff;
+  border-radius: 10px;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  width: 100%;
+  cursor: pointer;
+  margin-top: 20px;
+  margin-bottom: 20px;
+}
+.custom-paper-ref:hover {
+  transform: translateY(-5px);
+  box-shadow: 5px 5px 15px #c1c1c1, -5px -5px 15px #ffffff;
+}
+.tablaSlimDatosAccesorios {
+  margin-top: 10px;
+}
+@media only screen and (max-width: 600px) {
+  .chart-container {
+    width: 100%;
+    height: auto;
+  }
+  .custom-paper {
+    margin-top: 50px;
+    padding: 10px;
+    margin-left: 736px;
+  }
+  .custom-paper-reclamos {
+    margin-left: 734px;
+  }
+}
+/* Diseño grafica Shein Datos */
+.custom-paper-sx {
+  padding: 20px;
+  background: linear-gradient(145deg, #ffffff, #f0f0f0);
+  box-shadow: 5px 5px 10px #d1d1d1, -5px -5px 10px #ffffff;
+  border-radius: 10px;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  width: 100%;
+  cursor: pointer;
+  margin-bottom: 20px;
+}
+.custom-paper-sx:hover {
+  transform: translateY(-5px);
+  box-shadow: 5px 5px 15px #c1c1c1, -5px -5px 15px #ffffff;
+}
+.iconoRegresar {
+  font-size: 40px;
+}
+.headertablaslim {
+  background-color: rgb(146, 143, 143);
+}
+.tablaslimdatos {
+  width: 100%;
+}

@@ -1,0 +1,98 @@
+.menu-container {
+  padding: 50px 20px;
+  background-color: transparent;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.menu-title {
+  font-size: 3em;
+  margin-top: 100px;
+  margin-bottom: 40px;
+  color: #2c3e50;
+  font-weight: bold;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.menu {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 30px;
+}
+
+.menu-card {
+  background-color: #ffffff;
+  width: 300px;
+  border-radius: 15px;
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s, box-shadow 0.3s;
+  overflow: hidden;
+}
+
+.menu-card:hover {
+  transform: translateY(-10px);
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2);
+}
+
+.menu-link {
+  text-decoration: none;
+  color: inherit;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px;
+}
+
+.menu-card-content {
+  text-align: center;
+}
+
+.menu-card-content h2 {
+  font-size: 1.5em;
+  margin-bottom: 10px;
+  color: #2980b9;
+  font-weight: bold;
+}
+
+.menu-card-content p {
+  font-size: 1em;
+  color: #7f8c8d;
+}
+
+.menu-card-icon {
+  font-size: 4em;
+  color: #3498db;
+  margin-bottom: 20px;
+  transition: color 0.3s;
+}
+
+.menu-card:hover .menu-card-icon {
+  color: #2980b9;
+}
+
+.content {
+  padding: 20px;
+  font-size: 1.2em;
+  color: #2c3e50;
+}
+.xd {
+  width: 100px;
+  height: 100px;
+}
+.notification-count {
+  text-align: right;
+  margin-left: 270px;
+  margin-top: -20px;
+  background-color: red;
+  color: white;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 15px;
+  z-index: 99999;
+}

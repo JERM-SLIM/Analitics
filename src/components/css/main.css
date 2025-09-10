@@ -1,0 +1,28 @@
+html,
+body {
+  margin: 0;
+  padding: 0;
+  font-family: "Poppins", sans-serif;
+  min-height: 100vh;
+  background-image: url("/src/assets/light-background.png");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: cover;
+  background-attachment: fixed;
+  box-sizing: border-box;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+
+.row-warning {
+  background-color: #fff3cd !important;
+  /* Amarillo claro */
+}
+
+.row-urgent {
+  background-color: #f8d7da !important;
+  /* Rojo claro */
+}

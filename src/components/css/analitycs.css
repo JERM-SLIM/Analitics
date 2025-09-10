@@ -1,0 +1,84 @@
+.busqueda-analitica {
+  text-align: center;
+  margin-left: 60rem;
+  border: none;
+  font-size: 1.1em;
+  padding: 0.5em 20px;
+  background: linear-gradient(#dbdae1, #a3a3a3);
+  color: 555;
+  box-shadow: 5px 5px 5px rgba(0, 0, 0, 0.1), 15px 15px 15px rgba(0, 0, 0, 0.1),
+    20px 20px 15px rgba(0, 0, 0, 0.1), 30px 30px 15px rgba(0, 0, 0, 0.1),
+    inset 1px 1px 2px #fff;
+  border-radius: 12px;
+}
+
+.buscador-analitico {
+  margin-left: 0.4rem;
+  padding: 4px;
+  border: none;
+  border-radius: 10px;
+  background: linear-gradient(#dbdae1, #a3a3a3);
+  box-shadow: 5px 5px 5px rgba(0, 0, 0, 0.1), 15px 15px 15px rgba(0, 0, 0, 0.1),
+    20px 20px 15px rgba(0, 0, 0, 0.1), 30px 30px 15px rgba(0, 0, 0, 0.1),
+    inset 1px 1px 2px #fff;
+}
+
+.btn-analiticos-icono {
+  font-size: 2rem;
+}
+
+.buscador-analitico:hover {
+  background-color: black;
+}
+
+.check {
+  font-size: 24px;
+  background-color: green;
+  padding: 2px;
+  margin-left: 19px;
+}
+
+.nocheck {
+  font-size: 24px;
+  background-color: red;
+  margin-left: 19px;
+}
+
+.top_Slim_Plus {
+  text-align: center;
+  margin-top: 1rem;
+  margin-left: 57rem;
+  border: none;
+  width: 400px;
+  font-size: 1.1em;
+  padding: 0.5em 20px;
+  background: linear-gradient(#dbdae1, #a3a3a3);
+  color: 555;
+  box-shadow: 5px 5px 5px rgba(0, 0, 0, 0.1), 15px 15px 15px rgba(0, 0, 0, 0.1),
+    20px 20px 15px rgba(0, 0, 0, 0.1), 30px 30px 15px rgba(0, 0, 0, 0.1),
+    inset 1px 1px 2px #fff;
+  border-radius: 12px;
+}
+
+.TOP {
+  margin-left: 10px;
+  background-color: rgb(46, 236, 46);
+  padding: 6px;
+  border-radius: 14px;
+}
+
+@media (max-width: 1620px) {
+  .formulario1 {
+    font-size: 14px;
+    display: flex;
+    justify-content: center;
+    margin-right: 920px;
+  }
+
+  .top_Slim_Plus {
+    font-size: 17px;
+    display: flex;
+    justify-content: center;
+    margin-right: 910px;
+  }
+}

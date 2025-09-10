@@ -1,0 +1,20 @@
+.navegacion {
+  text-align: center;
+  margin-top: 10px;
+  margin-left: 53rem;
+  width: 250px;
+  border-radius: 20px;
+}
+.preguntasmenu-mobile .navegacion {
+  text-align: center;
+  font-size: 20px;
+  margin: 15px auto;
+  margin-right: 810px;
+  z-index: 1;
+}
+.nav-link {
+  display: flex;
+  text-align: center;
+  align-items: center;
+  justify-content: center;
+}

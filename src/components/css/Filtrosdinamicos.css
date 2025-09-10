@@ -1,0 +1,12 @@
+.select-proveedores {
+  margin-top: 30px;
+  padding: 10px;
+  width: 90%;
+  margin-right: 2px;
+  background-color: transparent;
+  color: white;
+  border: none;
+}
+.opciones {
+  color: black;
+}

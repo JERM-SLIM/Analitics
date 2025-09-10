@@ -1,0 +1,50 @@
+.tablas-modal {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  padding: 20px;
+}
+
+.search-container-modal {
+  margin-bottom: 20px;
+  width: 100%;
+}
+
+.search-input-modal {
+  width: 100%;
+  padding: 10px;
+  box-sizing: border-box;
+}
+
+.cardmobiletable-modal {
+  width: 100%;
+  margin-bottom: 20px;
+  padding: 15px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  background-color: #fff;
+}
+
+.cardmobiletable-modal img {
+  max-width: 100%;
+  height: auto;
+}
+
+.pagination-modal {
+  display: flex;
+  list-style-type: none;
+  padding: 0;
+}
+
+.pagination-modal li {
+  margin: 0 5px;
+  padding: 5px 10px;
+  cursor: pointer;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+}
+
+.pagination-modal li.disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}

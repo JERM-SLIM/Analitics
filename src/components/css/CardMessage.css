@@ -1,0 +1,200 @@
+:root {
+  --color-primary: #007bff;
+  --color-danger: #ff4d4f;
+  --color-danger-hover: #ff7875;
+  --color-light-bg: #f7f7f7;
+  --color-card-bg: #ffffff;
+  --color-text: #333;
+  --radius: 12px;
+  --shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  --transition: 0.3s ease-in-out;
+  --font-family: 'Segoe UI', sans-serif;
+}
+
+body {
+  font-family: var(--font-family);
+  background-color: var(--color-light-bg);
+  color: var(--color-text);
+}
+
+/* CONTENEDOR PRINCIPAL */
+.principal {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+  padding: 2rem;
+  min-height: 60vh;
+}
+
+/* TARJETAS */
+.tarjeta {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  width: 100%;
+  max-width: 650px;
+  background-color: var(--color-card-bg);
+  padding: 1.5rem;
+  margin: 1.5rem auto;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  transition: transform var(--transition), box-shadow var(--transition);
+}
+
+.tarjeta:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+  cursor: pointer;
+}
+
+.card-img-left {
+  flex-shrink: 0;
+  width: 90px;
+  height: 90px;
+  border-radius: var(--radius);
+  object-fit: cover;
+}
+
+.card-body {
+  flex: 1;
+  text-align: left;
+}
+
+/* RESPONSIVE TARJETAS */
+@media (max-width: 768px) {
+  .tarjeta {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .card-img-left {
+    margin-bottom: 1rem;
+  }
+}
+
+/* NO DATA */
+.no-data-text {
+  margin-top: 100px;
+  font-size: 1.5rem;
+  color: var(--color-danger);
+  background: #fff;
+  padding: 1.5rem 2rem;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  text-align: center;
+  animation: fadeIn 0.8s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* MODAL PRINCIPAL */
+.Modal-Principal {
+  padding: 2rem;
+}
+
+/* TEXTOS */
+.pregunta-pendientes {
+  margin-bottom: 1rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.property {
+  font-weight: 700;
+}
+
+/* TEXTAREA */
+.reply-textarea {
+  width: 100%;
+  padding: 1rem;
+  border: 1px solid #ccc;
+  border-radius: var(--radius);
+  font-size: 1rem;
+  box-shadow: var(--shadow);
+  resize: vertical;
+}
+
+/* BOTONES DE ACCIÓN */
+.boton-enviar-respuesta,
+.baneado,
+.borrar-pregunta,
+.btn-añadir-shortcut,
+.btn-ver-shortcut {
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #e3eeed;
+  border: none;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: background-color var(--transition), transform var(--transition);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  box-shadow: var(--shadow);
+}
+
+
+
+.baneado,
+.borrar-pregunta {
+  background: var(--color-danger);
+}
+
+.baneado:hover,
+.borrar-pregunta:hover {
+  background: var(--color-danger-hover);
+  transform: scale(1.05);
+}
+
+.btn-añadir-shortcut,
+.btn-ver-shortcut {
+  background-color: var(--color-primary);
+}
+
+.btn-añadir-shortcut:hover,
+.btn-ver-shortcut:hover {
+  background-color: #0056b3;
+}
+
+/* BOTÓN HISTORIAL */
+.btn-History {
+  font-size: 1.2rem;
+}
+
+/* CONTENEDOR DE BOTONES */
+.conteiner-botones-eliminar {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  margin: 1rem 0;
+}
+
+/* DISPONIBLE EN CEDIS */
+.disponible-cedis {
+  padding: 0.5rem;
+  border-radius: var(--radius);
+  transition: background-color var(--transition);
+}
+
+.disponible-cedis:hover {
+  background-color: #f0f0f0;
+}
+
+/* ICONOS */
+.user-ban-icon,
+.delete-question,
+.shortcut-icon {
+  font-size: 1.5rem;
+}
