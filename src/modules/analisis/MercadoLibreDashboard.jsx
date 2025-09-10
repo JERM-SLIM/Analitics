@@ -31,7 +31,7 @@ const delay = (ms) => new Promise((res) => setTimeout(res, ms));
 
 function MercadoLibreDashboard() {
   const [stores, setStores] = useState([]);
-  const [selectedStore, setSelectedStore] = useState("all");
+  const [selectedStore, setSelectedStore] = useState("97892065");
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [fromDate, setFromDate] = useState(new Date().toISOString().split("T")[0]);
@@ -124,45 +124,10 @@ const fetchAdCost = async (itemId, sellerId) => {
           signal: abortControllerRef.current.signal,
         });
 
-        for (const item of res.data.result || []) {
-          const id = item.ITEM_ID;
-          const tilulo = item.TITLE;
-          const vendidos = item.QUANTITY;
-          const precio = item.UNIT_PRICE;
-          const costo = item.COSTO_ULTIMA_COMPRA || 0;
-          const comision = item.SALE_FEE || 0;
-          const costoEnvio = item.SHIPPING_COST || 0;
-          const costoPublicidad = 0;
-
-          const crossdock = item.CROSSDOCK || 0;
-          const transfer = item.TRANSFER || 0;
-          const fulfillment = item.FULFILLMENT || 0;
-          const onTheWay = item.ON_THE_WAY || 0;
-          counts[id] = (counts[id] || 0) + vendidos;
-
-           detailsMap[id] = {
-            id,
-            titulo: tilulo,
-            store: store.seller_id,
-            vendidos: counts[id],
-            precio,
-            comision,
-            costoEnvio,
-            costo,
-            costoPublicidad,
-            crossdock,
-            transfer,
-            fulfillment,
-            onTheWay,
-        }
-      };
-
-
-
 
         for (const item of res.data.result || []) {
     const id = item.ITEM_ID;
-    const vendidos = item.QUANTITY;
+    const vendidos = item.QUANTITY||0;
     const costo = item.COSTO_ULTIMA_COMPRA || 0;
     const comision = item.SALE_FEE || 0;
     const costoEnvio = item.SHIPPING_COST || 0;
@@ -172,13 +137,13 @@ const fetchAdCost = async (itemId, sellerId) => {
     if (!summaryMap[id]) {
       summaryMap[id] = {
         id,
-        store: store.seller_id,
+        store: store.nickname,
         titulo: item.TITLE,
         vendidos: 0,
         totalCosto: 0,
         totalComision: 0,
         totalCostoEnvio: 0,
-        costoPublicidad: 0,
+        totalCostoPublicidad: 0,
         precio_total: 0,
         crossdock: item.CROSSDOCK || 0,
         transfer: item.TRANSFER || 0,
@@ -188,18 +153,19 @@ const fetchAdCost = async (itemId, sellerId) => {
     }
 
     summaryMap[id].vendidos += vendidos;
-    summaryMap[id].totalCosto += costo * vendidos;
-    summaryMap[id].totalComision += comision * vendidos;
-    summaryMap[id].totalCostoEnvio += costoEnvio * vendidos;
-    summaryMap[id].precio_total = precio; // Asumimos que el precio es constante por item
+    summaryMap[id].totalCosto += costo* vendidos; // Acumula el costo total
+    summaryMap[id].totalComision += comision* vendidos;
+    summaryMap[id].totalCostoEnvio += costoEnvio* vendidos;
+    summaryMap[id].totalCostoPublicidad += costoPublicidad * vendidos;
+    summaryMap[id].precio_total += precio; // Asumimos que el precio es constante por item
   }
       }
       
     
 // --- Luego generas allItems ---
 const allItems = Object.values(summaryMap).map((i) => {
-  const totalCostos = i.totalCosto + i.totalComision + i.totalCostoEnvio + i.costoPublicidad;
-  const utilidad = i.precio_total * i.vendidos - totalCostos;
+  const totalCostos = i.totalCosto + i.totalComision + i.totalCostoEnvio + i.totalCostoPublicidad;
+  const utilidad = (i.precio_total - totalCostos) * i.vendidos;
 
   return {
     id: i.id,
@@ -207,12 +173,12 @@ const allItems = Object.values(summaryMap).map((i) => {
     titulo: i.titulo,
     vendidos: i.vendidos,
     precio: i.precio_total,
-    costo: i.totalCosto.toFixed(2),
-    comision: i.totalComision.toFixed(2),
-    costo_envio: i.totalCostoEnvio.toFixed(2),
-    costo_publicidad: i.costoPublicidad.toFixed(2),
-    total_costos: totalCostos.toFixed(2),
-    utilidad: utilidad.toFixed(2),
+    costo: i.totalCosto,
+    comision: i.totalComision,
+    costo_envio: i.totalCostoEnvio,
+    costo_publicidad: i.totalCostoPublicidad,
+    total_costos: totalCostos,
+    utilidad: utilidad,
     crossdock: i.crossdock,
     transfer: i.transfer,
     fulfillment: i.fulfillment,
@@ -238,16 +204,16 @@ const allItems = Object.values(summaryMap).map((i) => {
     ID: i.id,
     Tienda: i.store,
     Título: i.titulo,
-    Precio: i.precio,
+    Precio: i.precio_total,
     Vendidos: i.vendidos,
-    "Costo De Compra": i.costo,
-    Comisión: i.comision,
-    "Costo Envío": i.costo_envio,
-    "Costo Publicidad": i.costo_publicidad,
+    "Costo T.": i.totalCosto,
+    Comisión: i.totalComision,
+    "Costo T.E": i.totalCostoEnvio,
+    "Costo T.P": i.totalCostoPublicidad,
     Utilidad: i.utilidad,
-    "Stock Crossdock": i.crossdock,
-    "Stock Transfer": i.transfer,
-    "Stock Fulfillment": i.fulfillment,
+    "Crossdock": i.crossdock,
+    "Transfer": i.transfer,
+    "Fulfillment": i.fulfillment,
     "En Camino": i.on_the_way,
     Link: i.link,
   }));
@@ -429,15 +395,14 @@ const allItems = Object.values(summaryMap).map((i) => {
     { field: "titulo", headerName: "Título", flex: 2 },
     { field: "precio", headerName: "Precio", flex: 1, type: "number" },
     { field: "vendidos", headerName: "Vendidos", flex: 1, type: "number" },
-    { field: "costo", headerName: "Costo De Compra", flex: 1, type: "number" },
-    { field: "comision", headerName: "Comisión", flex: 1, type: "number" },
-    { field: "costo_envio", headerName: "Costo Envío", flex: 1, type: "number" },
-    { field: "costo_publicidad", headerName: "Costo Publicidad", flex: 1, type: "number" },
+    { field: "costo", headerName: "Costo T.", flex: 1, type: "number" },
+    { field: "comision", headerName: "Comisión T.", flex: 1, type: "number" },
+    { field: "costo_envio", headerName: "Costo T.E", flex: 1, type: "number" },
+    { field: "costo_publicidad", headerName: "Costo T.P", flex: 1, type: "number" },
     { field: "utilidad", headerName: "Utilidad", flex: 1, type: "number" },
-    { field: "utilidad_total", headerName: "Utilidad Total", flex: 1, type: "number" },
-    { field: "crossdock", headerName: "Stock Crossdock", flex: 1, type: "number" },
-    { field: "transfer", headerName: "Stock Transfer", flex: 1, type: "number" },
-    { field: "fulfillment", headerName: "Stock Fulfillment", flex: 1, type: "number" },
+    { field: "crossdock", headerName: "Crossdock", flex: 1, type: "number" },
+    { field: "transfer", headerName: "Transfer", flex: 1, type: "number" },
+    { field: "fulfillment", headerName: "Fulfillment", flex: 1, type: "number" },
     { field: "on_the_way", headerName: "En Camino", flex: 1, type: "number" },
     {
       field: "link",
