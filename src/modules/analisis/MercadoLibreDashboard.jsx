@@ -56,36 +56,6 @@ function MercadoLibreDashboard() {
 
 
 
-const fetchAdCost = async (itemId, sellerId) => {
-  try {
-    const res = await axios.get(
-      `https://diler.com.mx:9092/seller/api`,
-      {
-        params: {
-          seller: sellerId,          // tu seller_id
-          endpoint_type: 'ads',      // tipo de endpoint
-          reference_id: itemId,      // item_id
-        },
-        headers: {
-         Token: "v1qDm0ZuIEKFDIm/SNYKeg==",
-          Accept: 'application/json',
-        },
-      }
-    );
-
-    const data = res.data;
-
-    // Retornar el costo total de publicidad
-    return data.metrics_summary?.total_amount || 0;
-
-  } catch (err) {
-    console.error(`Error fetchAdCost para item ${itemId}:`, err);
-    return 0;
-  }
-};
-
-
-
   // --- Traer datos de órdenes ---
   const fetchData = async () => {
     if (!stores.length || !selectedStore || !fromDate || !toDate) return;
@@ -108,6 +78,7 @@ const fetchAdCost = async (itemId, sellerId) => {
       let counts = {};
       let detailsMap = {};
       let summaryMap = {}; // Acumula por itemId
+      let adsPorDiaMap = {}; // { [itemId]: { [YYYY-MM-DD]: true } }
 
 
       for (const store of selectedStoresArr) {
@@ -131,7 +102,7 @@ const fetchAdCost = async (itemId, sellerId) => {
     const costo = item.COSTO_ULTIMA_COMPRA || 0;
     const comision = item.SALE_FEE || 0;
     const costoEnvio = item.SHIPPING_COST || 0;
-    const costoPublicidad = 0; // si quieres mantener publicidad aparte
+    const costoPublicidad = item.COSTO_ADS || 0; // si quieres mantener publicidad aparte
     const precio = item.UNIT_PRICE || 0;
 
     if (!summaryMap[id]) {
@@ -151,12 +122,21 @@ const fetchAdCost = async (itemId, sellerId) => {
         onTheWay: item.ON_THE_WAY || 0,
       };
     }
+   // Inicializar el registro de días
+    if (!adsPorDiaMap[id]) adsPorDiaMap[id] = {};
 
+    // Extraer fecha en formato YYYY-MM-DD
+    const fecha = item.DATE_CREATED.split("T")[0];
+
+    // Sumar publicidad solo si aún no se contó ese día
+    if (!adsPorDiaMap[id][fecha]) {
+        summaryMap[id].totalCostoPublicidad += costoPublicidad;
+        adsPorDiaMap[id][fecha] = true;
+    }
     summaryMap[id].vendidos += vendidos;
     summaryMap[id].totalCosto += costo* vendidos; // Acumula el costo total
     summaryMap[id].totalComision += comision* vendidos;
     summaryMap[id].totalCostoEnvio += costoEnvio* vendidos;
-    summaryMap[id].totalCostoPublicidad += costoPublicidad * vendidos;
     summaryMap[id].precio_total += precio; // Asumimos que el precio es constante por item
   }
       }
