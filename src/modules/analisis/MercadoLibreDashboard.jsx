@@ -26,7 +26,6 @@ import {
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 
-
 const delay = (ms) => new Promise((res) => setTimeout(res, ms));
 
 function MercadoLibreDashboard() {
@@ -37,6 +36,8 @@ function MercadoLibreDashboard() {
   const [fromDate, setFromDate] = useState(new Date().toISOString().split("T")[0]);
   const [toDate, setToDate] = useState(new Date().toISOString().split("T")[0]);
   const abortControllerRef = useRef(null);
+  const [page, setPage] = useState(0);
+const [pageSize, setPageSize] = useState(50);
 
   // --- Obtener tiendas ---
   const fetchStores = async () => {
@@ -52,9 +53,6 @@ function MercadoLibreDashboard() {
       console.error("Error cargando tiendas:", err);
     }
   };
-
-
-
 
   // --- Traer datos de órdenes ---
   const fetchData = async () => {
@@ -75,98 +73,124 @@ function MercadoLibreDashboard() {
         return;
       }
 
-      let counts = {};
-      let detailsMap = {};
-      let summaryMap = {}; // Acumula por itemId
-      let adsPorDiaMap = {}; // { [itemId]: { [YYYY-MM-DD]: true } }
-
+      let summaryMap = {};
 
       for (const store of selectedStoresArr) {
-        const res = await axios.get("https://diler.com.mx:9092/orders/search", {
-          params: {
-            seller: store.seller_id,
-            inicio: `${fromDate} 00:00:00.000-06:00`,
-            fin: `${toDate} 23:59:59.000-06:00`,
-          },
-          headers: {
-            Token: "v1qDm0ZuIEKFDIm/SNYKeg==",
-            Accept: "application/json",
-          },
-          signal: abortControllerRef.current.signal,
-        });
+  const res = await axios.get("https://diler.com.mx:9092/orders/search", {
+    params: {
+      seller: store.seller_id,
+      inicio: `${fromDate} 00:00:00.000-06:00`,
+      fin: `${toDate} 23:59:59.000-06:00`,
+    },
+    headers: {
+      Token: "v1qDm0ZuIEKFDIm/SNYKeg==",
+      Accept: "application/json",
+    },
+    signal: abortControllerRef.current.signal,
+  });
 
+  for (const item of res.data.result || []) {
+    const itemId = item.ITEM_ID;
+    const variante_id = item.VARIATION_ID || 0;
+    const orderId = item.ID;
+    const key = `${itemId}_${variante_id}`; // agrupar por item + variante
+    const orderKey = orderId; // track por orden para no duplicar costos
+        const orderKey2 = `${orderId}_${key}`; // track por orden para no duplicar costos
 
-        for (const item of res.data.result || []) {
-    const id = item.ITEM_ID;
-    const vendidos = item.QUANTITY||0;
+  const fechaDia = item.date_ads;
+  const adsKey = `${key}_${fechaDia}`; // track por item+variante+día para ads
+
+    const vendidos = item.QUANTITY || 0;
     const costo = item.COSTO_ULTIMA_COMPRA || 0;
     const comision = item.SALE_FEE || 0;
     const costoEnvio = item.SHIPPING_COST || 0;
-    const costoPublicidad = item.COSTO_ADS || 0; // si quieres mantener publicidad aparte
+    const costoPublicidad = item.COSTO_ADS || 0;
     const precio = item.UNIT_PRICE || 0;
+    const total = item.TOTAL || 0;
 
-    if (!summaryMap[id]) {
-      summaryMap[id] = {
-        id,
+
+    if (!summaryMap[key]) {
+      summaryMap[key] = {
+        id: key,
+        itemId: itemId,
+        variante_id: variante_id,
         store: store.nickname,
         titulo: item.TITLE,
         vendidos: 0,
         totalCosto: 0,
+        costo_unitario: costo,
         totalComision: 0,
+        comision_unitaria: comision,
         totalCostoEnvio: 0,
+        costoEnvio_unitario: costoEnvio,
         totalCostoPublicidad: 0,
+        costoPublicidad_unitario: costoPublicidad,
         precio_total: 0,
-        crossdock: item.CROSSDOCK || 0,
+        precio_unitario: precio,
+        
         transfer: item.TRANSFER || 0,
         fulfillment: item.FULFILLMENT || 0,
         onTheWay: item.ON_THE_WAY || 0,
+        itemsOrdenesContadas: {}, // track de órdenes
+        adsPorDiaContados: {},    // track de ads por día
+
       };
     }
-   // Inicializar el registro de días
-    if (!adsPorDiaMap[id]) adsPorDiaMap[id] = {};
 
-    // Extraer fecha en formato YYYY-MM-DD
-    const fecha = item.DATE_CREATED.split("T")[0];
+    const record = summaryMap[key];
 
-    // Sumar publicidad solo si aún no se contó ese día
-    if (!adsPorDiaMap[id][fecha]) {
-        summaryMap[id].totalCostoPublicidad += costoPublicidad;
-        adsPorDiaMap[id][fecha] = true;
+    // Sumar costos fijos solo una vez por orden
+    if (!record.itemsOrdenesContadas[orderKey2]) {
+      record.totalComision += comision;
+      record.totalCostoEnvio += costoEnvio;
+      record.totalCosto += costo;
+      record.itemsOrdenesContadas[orderKey2] = true;
+          // Sumar cantidades y precio total siempre
+    record.vendidos += vendidos;
+    record.precio_total += total;
     }
-    summaryMap[id].vendidos += vendidos;
-    summaryMap[id].totalCosto += costo* vendidos; // Acumula el costo total
-    summaryMap[id].totalComision += comision* vendidos;
-    summaryMap[id].totalCostoEnvio += costoEnvio* vendidos;
-    summaryMap[id].precio_total += precio; // Asumimos que el precio es constante por item
+
+     if (!record.adsPorDiaContados[adsKey]) {
+    record.totalCostoPublicidad += costoPublicidad;
+    record.adsPorDiaContados[adsKey] = true;
   }
-      }
-      
-    
-// --- Luego generas allItems ---
-const allItems = Object.values(summaryMap).map((i) => {
-  const totalCostos = i.totalCosto + i.totalComision + i.totalCostoEnvio + i.totalCostoPublicidad;
-  const utilidad = (i.precio_total - totalCostos) * i.vendidos;
 
-  return {
-    id: i.id,
-    store: i.store,
-    titulo: i.titulo,
-    vendidos: i.vendidos,
-    precio: i.precio_total,
-    costo: i.totalCosto,
-    comision: i.totalComision,
-    costo_envio: i.totalCostoEnvio,
-    costo_publicidad: i.totalCostoPublicidad,
-    total_costos: totalCostos,
-    utilidad: utilidad,
-    crossdock: i.crossdock,
-    transfer: i.transfer,
-    fulfillment: i.fulfillment,
-    on_the_way: i.onTheWay,
-    link: `https://articulo.mercadolibre.com.mx/${i.id}`,
-  };
-});
 
+  }
+}
+
+      const allItems = Object.values(summaryMap).map((i) => {
+        const totalCostos = i.totalCosto + i.totalComision + i.totalCostoEnvio + i.totalCostoPublicidad;
+        const utilidad = i.precio_total - totalCostos;
+          const utilidad_unitaria = i.vendidos ? utilidad / i.vendidos : 0; // utilidad por unidad
+
+
+        return {
+          id: i.id,
+          itemId: i.itemId,
+          variante_id: i.variante_id,
+          store: i.store,
+          titulo: i.titulo,
+          vendidos: i.vendidos,
+          precio: i.precio_total,
+          precio_unitario: i.precio_unitario,
+          costo: i.totalCosto,
+          costo_unitario: i.costo_unitario,
+          comision: i.totalComision,
+          comision_unitaria: i.comision_unitaria,
+          costo_envio: i.totalCostoEnvio,
+          costoEnvio_unitario: i.costoEnvio_unitario,
+          costo_publicidad: i.totalCostoPublicidad,
+          costoPublicidad_unitario: i.costoPublicidad_unitario,
+          total_costos: totalCostos,
+          utilidad: utilidad,
+          utilidad_unitaria: utilidad_unitaria,
+          transfer: i.transfer,
+          fulfillment: i.fulfillment,
+          on_the_way: i.onTheWay,
+          link: `https://articulo.mercadolibre.com.mx/MLM-${i.itemId.substring(3)}`,
+        };
+      });
 
       setItems(allItems);
     } catch (err) {
@@ -176,36 +200,40 @@ const allItems = Object.values(summaryMap).map((i) => {
       setLoading(false);
     }
   };
-  const exportToExcel = () => {
-  if (!items.length) return;
+  
+  // --- DataGrid con paginación server ---
 
-  // Transformar los datos a un formato amigable para Excel
-  const wsData = items.map((i) => ({
-    ID: i.id,
-    Tienda: i.store,
-    Título: i.titulo,
-    Precio: i.precio_total,
-    Vendidos: i.vendidos,
-    "Costo T.": i.totalCosto,
-    Comisión: i.totalComision,
-    "Costo T.E": i.totalCostoEnvio,
-    "Costo T.P": i.totalCostoPublicidad,
-    Utilidad: i.utilidad,
-    "Crossdock": i.crossdock,
-    "Transfer": i.transfer,
-    "Fulfillment": i.fulfillment,
-    "En Camino": i.on_the_way,
-    Link: i.link,
-  }));
+
+// --- Exportar solo la página actual ---
+// Exportar solo la página actual
+const exportPageToExcel = () => {
+  if (!items.length) return;
+  const start = page * pageSize;
+  const end = start + pageSize;
+  const pageItems = items.slice(start, end);
 
   const wb = XLSX.utils.book_new();
-  const ws = XLSX.utils.json_to_sheet(wsData);
-  XLSX.utils.book_append_sheet(wb, ws, "Publicaciones");
+  const ws = XLSX.utils.json_to_sheet(pageItems);
+  XLSX.utils.book_append_sheet(wb, ws, `Órdenes_Página_${page + 1}`);
 
   const excelBuffer = XLSX.write(wb, { bookType: "xlsx", type: "array" });
   const data = new Blob([excelBuffer], { type: "application/octet-stream" });
-  saveAs(data, `MercadoLibreDashboard_${fromDate}_a_${toDate}.xlsx`);
+  saveAs(data, `Ordenes_Página_${page + 1}.xlsx`);
 };
+
+// Exportar todas las órdenes
+const exportAllToExcel = () => {
+  if (!items.length) return;
+
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.json_to_sheet(items);
+  XLSX.utils.book_append_sheet(wb, ws, `Órdenes_Totales`);
+
+  const excelBuffer = XLSX.write(wb, { bookType: "xlsx", type: "array" });
+  const data = new Blob([excelBuffer], { type: "application/octet-stream" });
+  saveAs(data, `Ordenes_Totales_${fromDate}_a_${toDate}.xlsx`);
+};
+
 
   // --- Efectos ---
   useEffect(() => { fetchStores(); }, []);
@@ -226,12 +254,20 @@ const allItems = Object.values(summaryMap).map((i) => {
       ticketPromedio: 0, precioPromedio: 0, margenPromedio: 0,
     };
 
+console.log(items.map(i => ({
+  itemId: i.itemId,
+  vendidos: i.vendidos,
+  precio_total: i.precio,
+  totalCosto: i.total_costos,
+  utilidad: i.utilidad
+})));
+
     const totalVendidos = items.reduce((acc, i) => acc + i.vendidos, 0);
     const totalUtilidad = items.reduce((acc, i) => acc + parseFloat(i.utilidad), 0);
 
     const precioPromedio = items.reduce((acc, i) => acc + i.precio, 0) / items.length;
-    const ticketPromedio = totalVendidos ? items.reduce((acc, i) => acc + i.precio * i.vendidos, 0) / totalVendidos : 0;
-    const margenPromedio = totalVendidos ? (totalUtilidad / items.reduce((acc, i) => acc + i.precio * i.vendidos, 0)) * 100 : 0;
+    const ticketPromedio = totalVendidos ? items.reduce((acc, i) => acc + i.precio, 0) / totalVendidos : 0;
+    const margenPromedio = totalVendidos ? (totalUtilidad / items.reduce((acc, i) => acc + i.precio, 0)) * 100 : 0;
 
     const sortedByVentas = [...items].sort((a, b) => b.vendidos - a.vendidos);
     const sortedByUtilidad = [...items].sort((a, b) => b.utilidad - a.utilidad);
@@ -298,19 +334,39 @@ const allItems = Object.values(summaryMap).map((i) => {
         </Grid>
       </Grid>
 
-      {/* KPIs */}
- <Grid container spacing={2} sx={{ mb: 3 }}>
+{/* KPIs */}
+<Grid container spacing={2} sx={{ mb: 3 }}>
   {[
-    { title: "Suma total de unidades vendidas", value: totalVendidos, tooltip: "Suma total de unidades vendidas" },
-    { title: "Utilidad Total", value: `$${totalUtilidad.toFixed(2)}`, tooltip: "Suma de la utilidad de todos los productos (precio - comisión - costo envío)" },
-    { title: "Ticket Promedio", value: `$${ticketPromedio.toFixed(2)}`, tooltip: "Promedio de venta por unidad (total vendido / total unidades)" },
-    { title: "Precio Promedio", value: `$${precioPromedio.toFixed(2)}`, tooltip: "Promedio de precio de los productos vendidos" },
-    { title: "Margen Promedio", value: `${margenPromedio.toFixed(2)}%`, tooltip: "Margen promedio = (utilidad total / ventas totales) * 100%" },
+    { 
+      title: "Suma total de unidades vendidas", 
+      value: totalVendidos,
+      tooltip: "Suma total de unidades vendidas de todos los productos"
+    },
+    { 
+      title: "Utilidad Total", 
+      value: `$${new Intl.NumberFormat('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(totalUtilidad)}`,
+      tooltip: "Suma de la utilidad de todos los productos (precio total - costos - comisión - envío - publicidad)"
+    },
+    { 
+      title: "Ticket Promedio", 
+      value: `$${new Intl.NumberFormat('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(ticketPromedio)}`,
+      tooltip: "Promedio de venta por unidad: (total vendido / total unidades)"
+    },
+    { 
+      title: "Precio Promedio", 
+      value: `$${new Intl.NumberFormat('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(precioPromedio)}`,
+      tooltip: "Promedio de precio de todos los productos vendidos"
+    },
+    { 
+      title: "Margen Promedio", 
+      value: `${margenPromedio.toFixed(2)}%`,
+      tooltip: "Margen promedio = (utilidad total / ventas totales) * 100%"
+    },
   ].map((kpi) => (
     <Grid item xs={12} sm={6} md={2} key={kpi.title}>
       <Card sx={{ backgroundColor: "#1e2a38" }}>
         <Tooltip title={kpi.tooltip} arrow>
-          <CardContent sx={{ cursor: "pointer" }}>
+          <CardContent>
             <Typography sx={{ color: "#cfd8dc" }}>{kpi.title}</Typography>
             <Typography variant="h6" sx={{ color: "#fff" }}>{kpi.value}</Typography>
           </CardContent>
@@ -357,30 +413,38 @@ const allItems = Object.values(summaryMap).map((i) => {
         </Grid>
       </Grid>
 
-<Box sx={{ display: "flex", justifyContent: "flex-end", mb: 1 }}>
-  <Button variant="contained" color="success" onClick={exportToExcel}>
-    Descargar Excel
-  </Button>
-</Box>
+    <Box sx={{ display: "flex", justifyContent: "flex-end", mb: 1, gap: 1 }}>
+      <Button variant="contained" color="success" onClick={exportPageToExcel}>
+        Descargar Página Actual
+      </Button>
+      <Button variant="contained" color="primary" onClick={exportAllToExcel}>
+        Descargar Todas las Órdenes
+      </Button>
+    </Box>
+
 
       {/* Tabla de items */}
       <Card sx={{ backgroundColor: "#1e2a38" }}>
         <CardContent>
           <Typography variant="h6" sx={{ color: "#fff", mb: 2 }}>📄 Lista completa de publicaciones</Typography>
           <DataGrid
-            rows={items}
-            columns={[
-               { field: "id", headerName: "ID", flex: 1 },
-    { field: "store", headerName: "Tienda", flex: 1 },
+  rows={items}
+  columns={[
+    { field: "itemId", headerName: "ID", flex: 1 },
     { field: "titulo", headerName: "Título", flex: 2 },
     { field: "precio", headerName: "Precio", flex: 1, type: "number" },
+    { field: "precio_unitario", headerName: "Precio Unit.", flex: 1, type: "number" },
     { field: "vendidos", headerName: "Vendidos", flex: 1, type: "number" },
+    { field: "costo_unitario", headerName: "Costo Unit.", flex: 1, type: "number" },
     { field: "costo", headerName: "Costo T.", flex: 1, type: "number" },
+    { field: "comision_unitaria", headerName: "Comisión U.", flex: 1, type: "number" },
     { field: "comision", headerName: "Comisión T.", flex: 1, type: "number" },
-    { field: "costo_envio", headerName: "Costo T.E", flex: 1, type: "number" },
-    { field: "costo_publicidad", headerName: "Costo T.P", flex: 1, type: "number" },
+    { field: "costoEnvio_unitario", headerName: "Envio U.", flex: 1, type: "number" },
+    { field: "costo_envio", headerName: "Envio T.", flex: 1, type: "number" },
+    { field: "costo_publicidad", headerName: "Publicidad T.", flex: 1, type: "number" },
+    { field: "costoPublicidad_unitario", headerName: "Publicidad Uni.", flex: 1, type: "number" },
     { field: "utilidad", headerName: "Utilidad", flex: 1, type: "number" },
-    { field: "crossdock", headerName: "Crossdock", flex: 1, type: "number" },
+    { field: "utilidad_unitaria", headerName: "Utilidad Unit", flex: 1, type: "number" },
     { field: "transfer", headerName: "Transfer", flex: 1, type: "number" },
     { field: "fulfillment", headerName: "Fulfillment", flex: 1, type: "number" },
     { field: "on_the_way", headerName: "En Camino", flex: 1, type: "number" },
@@ -393,27 +457,27 @@ const allItems = Object.values(summaryMap).map((i) => {
           Ver
         </Button>
       ),
-              },
-            ]}
-            pageSize={10}
-            rowsPerPageOptions={[10]}
-            autoHeight
-            disableSelectionOnClick
-            sx={{
-              color: "#eceff1",
-              borderColor: "#37474f",
-              "& .MuiDataGrid-columnHeaders": {
-                backgroundColor: "#263238",
-                color: "#000000ff",
-                fontWeight: "bold",
-              },
-              "& .MuiDataGrid-cell": { color: "#eceff1" },
-              "& .MuiDataGrid-footerContainer": {
-                backgroundColor: "#263238",
-                color: "#eceff1",
-              },
-            }}
-          />
+    },
+  ]}
+  page={page}
+  pageSize={pageSize}
+  rowsPerPageOptions={[50]}
+  paginationMode="client" // <-- cambiar a client
+  onPageChange={(newPage) => setPage(newPage)}
+  onPageSizeChange={(newPageSize) => setPageSize(newPageSize)}
+  autoHeight
+  disableSelectionOnClick
+  sx={{
+    backgroundColor: "#263238",
+    "& .MuiDataGrid-cell": { color: "#fff" },
+    "& .MuiDataGrid-columnHeaders": { 
+      backgroundColor: "#1c2b36", 
+      color: "#000000ff",      // <-- asegurarte de que el color contraste
+      fontWeight: "bold",
+    },
+    "& .MuiDataGrid-footerContainer": { backgroundColor: "#1c2b36", color: "#fff" },
+  }}
+/>
         </CardContent>
       </Card>
     </Box>
