@@ -18,7 +18,7 @@ const useLogin = (username, password) => {
           // Guardar sesión en localStorage
         localStorage.setItem("authToken", response.data.token || "dummy-token");
         localStorage.setItem("username", username);
-        navigate("/mercadolibre-metricas");
+        navigate("/menu");
       }
     } catch (err) {
       console.error("Error al iniciar sesión:", err);

@@ -1,4 +1,3 @@
-
 {
   "name": "analitics",
   "private": true,
@@ -10,7 +9,6 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview"
-  
   },
   "dependencies": {
     "@date-io/dayjs": "^3.0.0",
