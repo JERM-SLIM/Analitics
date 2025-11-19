@@ -44,7 +44,12 @@ function MercadoLibreDashboard() {
     sortBy,
     setSortBy,
     sortOrder,
-    setSortOrder
+    setSortOrder,
+        // Nuevas props para filtros
+    statusFilter,
+    setStatusFilter,
+    titleFilter,
+    setTitleFilter
   } = useOrdersData();
 
   return (
@@ -69,21 +74,13 @@ function MercadoLibreDashboard() {
       setSortBy={setSortBy}
       sortOrder={sortOrder}
       setSortOrder={setSortOrder}
+           statusFilter={statusFilter}
+        setStatusFilter={setStatusFilter}
+        titleFilter={titleFilter}
+        setTitleFilter={setTitleFilter}
     />
 
-    {/* <Kpis
-        topVentas={topVentas}
-        topUtilidad={topUtilidad}
-        totalVendidos={totalVendidos}
-        totalUtilidad={totalUtilidad}
-        totalUtilidadSinCostos={totalUtilidadSinCostos}
-        ticketPromedio={ticketPromedio}
-        precioPromedio={precioPromedio}
-        margenPromedio={margenPromedio}
-      /> */}
-
-      {/* <TopCharts topVentas={topVentas} topUtilidad={topUtilidad} /> */}
-
+   
       <Box sx={{ display: "flex", justifyContent: "flex-end", mb: 1, gap: 1 }}>
         <Button variant="contained" color="success" onClick={exportPageToExcel}>
           Descargar Página Actual

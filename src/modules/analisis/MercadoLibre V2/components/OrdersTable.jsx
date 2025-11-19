@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React from "react";
 import {
   Card,
   CardContent,
@@ -9,9 +9,7 @@ import {
   Select,
   MenuItem,
   Pagination,
-  Button,
-  Tooltip,
-  TextField,
+  Button,Tooltip 
 } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
 
@@ -26,12 +24,6 @@ const OrdersTable = ({
   setSelectedRow,
   setDrawerOpen
 }) => {
-  // --- 🎯 Filtros locales ---
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [searchTitle, setSearchTitle] = useState("");
-  const [priceMin, setPriceMin] = useState("");
-  const [priceMax, setPriceMax] = useState("");
-
   const formatCurrency = (v) =>
     new Intl.NumberFormat("es-MX", {
       style: "currency",
@@ -49,54 +41,36 @@ const OrdersTable = ({
 
   const handlePageChange = (event, value) => setPage(value - 1);
 
-  // --- 🔍 Filtrar los datos antes de mostrarlos ---
-  const filteredRows = useMemo(() => {
-    return visibleRows.filter((row) => {
-      const statusMatch =
-        statusFilter === "all" ? true : row.STATUS_PUBLICACION === statusFilter;
-      const titleMatch = row.titulo
-        ?.toLowerCase()
-        .includes(searchTitle.toLowerCase());
-      const price = Number(row.precio_unitario ?? 0);
-      const priceMatch =
-        (!priceMin || price >= Number(priceMin)) &&
-        (!priceMax || price <= Number(priceMax));
-
-      return statusMatch && titleMatch && priceMatch;
-    });
-  }, [visibleRows, statusFilter, searchTitle, priceMin, priceMax]);
-
   const columns = [
-    { field: "registro", headerName: "#", width: 60 },
-    {
-      field: "itemId",
-      headerName: "ID",
-      flex: 1.5,
-      renderCell: (params) => {
-        const status = params.row.STATUS_PUBLICACION;
-        let color = "red";
-        let label = "Desconocido";
+    { field: "registro", headerName: "#", width: 60 },{
+  field: "itemId",
+  headerName: "ID",
+  flex: 1.5,
+    renderCell: (params) => {
+      const status = params.row.STATUS_PUBLICACION;
+      let color = "red";
+      let label = "Desconocido";
 
-        if (status === "active") {
-          color = "green";
-          label = "Publicación activa";
-        } else if (status === "paused") {
-          color = "goldenrod";
-          label = "Publicación pausada";
-        } else {
-          color = "red";
-          label = "Publicación finalizada";
-        }
+      if (status === "active") {
+        color = "green";
+        label = "Publicación activa";
+      } else if (status === "paused") {
+        color = "goldenrod";
+        label = "Publicación pausada";
+      } else {
+        color = "red";
+        label = "Publicación finalizada";
+      }
 
-        return (
-          <Tooltip title={label} arrow>
-            <span style={{ color, fontWeight: "bold", cursor: "help" }}>
-              {params.value}
-            </span>
-          </Tooltip>
-        );
-      },
-    },
+    return (
+      <Tooltip title={label} arrow>
+        <span style={{ color, fontWeight: "bold", cursor: "help" }}>
+          {params.value}
+        </span>
+      </Tooltip>
+    );
+  },
+},
     { field: "titulo", headerName: "Título", flex: 4 },
     {
       field: "precio_unitario",
@@ -151,26 +125,12 @@ const OrdersTable = ({
       flex: 1,
       type: "number",
       renderCell: (params) => (
-        <Box
-          sx={{
-            width: "100%",
-            height: "100%",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "flex-end",
-            px: 2,
-          }}
-        >
+        <Box sx={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "flex-end", px: 2 }}>
           {formatCurrency(params.value)}
         </Box>
-      ),
+      )
     },
-    {
-      field: "costoPublicidad_unitario",
-      headerName: "Publicidad U.",
-      flex: 1,
-      type: "number",
-    },
+    { field: "costoPublicidad_unitario", headerName: "Publicidad U.", flex: 1, type: "number" },
     { field: "precio", headerName: "Precio T.", flex: 0, type: "number" },
     { field: "utilidad", headerName: "Utilidad T.", flex: 0, type: "number" },
     {
@@ -195,106 +155,27 @@ const OrdersTable = ({
   return (
     <Card sx={{ backgroundColor: "#1e2a38" }}>
       <CardContent>
-        <Typography variant="h6" sx={{ color: "#fff", mb: 2 }}>
-          📄 Lista de publicaciones
-        </Typography>
+        <Typography variant="h6" sx={{ color: "#fff", mb: 1 }}>📄 Lista de publicaciones</Typography>
 
-        {/* === FILTROS === */}
-        <Box
-          sx={{
-            display: "flex",
-            flexWrap: "wrap",
-            gap: 2,
-            mb: 2,
-            alignItems: "center",
-          }}
-        >
-          <FormControl size="small" sx={{ minWidth: 160 }}>
-            <InputLabel sx={{ color: "#fff" }}>Estatus</InputLabel>
-            <Select
-              value={statusFilter}
-              label="Estatus"
-              onChange={(e) => setStatusFilter(e.target.value)}
-              sx={{ backgroundColor: "#263238", color: "#fff" }}
-            >
-              <MenuItem value="all">Todos</MenuItem>
-              <MenuItem value="active">Activos</MenuItem>
-              <MenuItem value="paused">Pausados</MenuItem>
-              <MenuItem value="closed">Finalizados</MenuItem>
-            </Select>
-          </FormControl>
-
-          <TextField
-            size="small"
-            label="Buscar título"
-            value={searchTitle}
-            onChange={(e) => setSearchTitle(e.target.value)}
-            sx={{
-              input: { color: "#fff" },
-              label: { color: "#bbb" },
-              backgroundColor: "#263238",
-            }}
-          />
-
-          <Button
-            variant="contained"
-            color="secondary"
-            onClick={() => {
-              setStatusFilter("all");
-              setSearchTitle("");
-              setPriceMin("");
-              setPriceMax("");
-            }}
-          >
-            Limpiar filtros
-          </Button>
-        </Box>
-
-        {/* === Paginación y tamaño de página === */}
-        <Box
-          sx={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            mb: 1,
-          }}
-        >
+        <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 1 }}>
           <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
             <FormControl size="small" sx={{ minWidth: 120 }}>
               <InputLabel sx={{ color: "#fff" }}>Filas</InputLabel>
-              <Select
-                value={pageSize}
-                label="Filas"
-                onChange={handlePageSizeChange}
-                sx={{ backgroundColor: "#263238", color: "#fff" }}
-              >
-                {rowsPerPageOptions.map((opt) => (
-                  <MenuItem key={opt} value={opt}>
-                    {opt}
-                  </MenuItem>
-                ))}
+              <Select value={pageSize} label="Filas" onChange={handlePageSizeChange} sx={{ backgroundColor: "#263238", color: "#fff" }}>
+                {rowsPerPageOptions.map((opt) => <MenuItem key={opt} value={opt}>{opt}</MenuItem>)}
               </Select>
             </FormControl>
 
             <Typography sx={{ color: "#fff" }}>
-              Mostrando {filteredRows.length} resultados
+              Mostrando {items.length ? Math.min(pageSize, items.length - page * pageSize) : 0} de {items.length} registros
             </Typography>
           </Box>
 
-          <Pagination
-            count={pageCount}
-            page={page + 1}
-            onChange={handlePageChange}
-            color="primary"
-            showFirstButton
-            showLastButton
-            sx={{ bgcolor: "#263238", borderRadius: 1, px: 1 }}
-          />
+          <Pagination count={pageCount} page={page + 1} onChange={handlePageChange} color="primary" showFirstButton showLastButton sx={{ bgcolor: "#263238", borderRadius: 1, px: 1 }} />
         </Box>
 
-        {/* === Tabla === */}
         <DataGrid
-          rows={filteredRows}
+          rows={visibleRows}
           columns={columns}
           autoHeight={false}
           density="compact"

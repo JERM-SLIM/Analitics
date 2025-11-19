@@ -1,13 +1,13 @@
-//
 // MercadoLibreDashboard.jsx
 import React from "react";
 import { Box, Typography, Button } from "@mui/material";
 import Filters from "./components/Filters";
 import Kpis from "./components/Kpis";
 import TopCharts from "./components/TopCharts";
-import OrdersTable from "./components/OrdersTable";
+import OrdersCards from "./components/OrdersCards";
 import ProductDrawer from "./components/ProductDrawer";
 import useOrdersData from "./hooks/useOrdersData";
+import EnhancedKpis from "./components/EnhancedKpis";
 
 function MercadoLibreDashboard() {
   const {
@@ -45,7 +45,27 @@ function MercadoLibreDashboard() {
     sortBy,
     setSortBy,
     sortOrder,
-    setSortOrder
+    setSortOrder,
+    // ✅ NUEVOS FILTROS QUE FALTABAN
+    statusFilter,
+    setStatusFilter,
+    titleFilter,
+    setTitleFilter,margenMin,
+setMargenMin,
+margenMax,
+setMargenMax,
+roiMin,
+setRoiMin,
+roiMax,
+setRoiMax,
+stockRiskFilter,
+setStockRiskFilter,
+abcFilter,
+setAbcFilter,
+onlyWithStockRisk,
+setOnlyWithStockRisk,
+onlyVariablePrice,
+setOnlyVariablePrice,
   } = useOrdersData();
 
   return (
@@ -54,36 +74,53 @@ function MercadoLibreDashboard() {
         Mercado Libre - Análisis de Pedidos V3
       </Typography>
 
-    <Filters
-      loading={loading}
-      stores={stores}
-      selectedStore={selectedStore}
-      setSelectedStore={setSelectedStore}
-      fromDate={fromDate}
-      setFromDate={setFromDate}
-      toDate={toDate}
-      setToDate={setToDate}
-      fetchData={fetchData}
-      setPage={setPage}
-      // ESTOS SON LOS IMPORTANTES PARA LOS FILTROS:
-      sortBy={sortBy}
-      setSortBy={setSortBy}
-      sortOrder={sortOrder}
-      setSortOrder={setSortOrder}
-    />
+      {/* ✅ PASAR TODOS LOS FILTROS AL COMPONENTE FILTERS */}
+<Filters
+  loading={loading}
+  stores={stores}
+  selectedStore={selectedStore}
+  setSelectedStore={setSelectedStore}
+  fromDate={fromDate}
+  setFromDate={setFromDate}
+  toDate={toDate}
+  setToDate={setToDate}
+  fetchData={fetchData}
+  setPage={setPage}
+  sortBy={sortBy}
+  setSortBy={setSortBy}
+  sortOrder={sortOrder}
+  setSortOrder={setSortOrder}
 
-      <Kpis
-        topVentas={topVentas}
-        topUtilidad={topUtilidad}
-        totalVendidos={totalVendidos}
-        totalUtilidad={totalUtilidad}
-        totalUtilidadSinCostos={totalUtilidadSinCostos}
-        ticketPromedio={ticketPromedio}
-        precioPromedio={precioPromedio}
-        margenPromedio={margenPromedio}
-      />
+  // Filtros básicos
+  statusFilter={statusFilter}
+  setStatusFilter={setStatusFilter}
+  titleFilter={titleFilter}
+  setTitleFilter={setTitleFilter}
 
-      <TopCharts topVentas={topVentas} topUtilidad={topUtilidad} />
+  // 🔥 Filtros avanzados
+  margenMin={margenMin}
+  setMargenMin={setMargenMin}
+  margenMax={margenMax}
+  setMargenMax={setMargenMax}
+
+  roiMin={roiMin}
+  setRoiMin={setRoiMin}
+  roiMax={roiMax}
+  setRoiMax={setRoiMax}
+
+  stockRiskFilter={stockRiskFilter}
+  setStockRiskFilter={setStockRiskFilter}
+
+  abcFilter={abcFilter}
+  setAbcFilter={setAbcFilter}
+
+  onlyWithStockRisk={onlyWithStockRisk}
+  setOnlyWithStockRisk={setOnlyWithStockRisk}
+
+  onlyVariablePrice={onlyVariablePrice}
+  setOnlyVariablePrice={setOnlyVariablePrice}
+/>
+
 
       <Box sx={{ display: "flex", justifyContent: "flex-end", mb: 1, gap: 1 }}>
         <Button variant="contained" color="success" onClick={exportPageToExcel}>
@@ -97,17 +134,15 @@ function MercadoLibreDashboard() {
         </Button>
       </Box>
 
-      <OrdersTable
-        items={items}
-        page={page}
-        setPage={setPage}
-        pageSize={pageSize}
-        setPageSize={setPageSize}
-        visibleRows={visibleRows}
-        pageCount={pageCount}
-        setSelectedRow={setSelectedRow}
-        setDrawerOpen={setDrawerOpen}
-      />
+    <OrdersCards
+  visibleRows={visibleRows}
+  page={page}
+  setPage={setPage}
+  pageCount={pageCount}
+  setSelectedRow={setSelectedRow}
+  setDrawerOpen={setDrawerOpen}
+/>
+
 
       <ProductDrawer
         selectedRow={selectedRow}

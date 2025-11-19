@@ -14,7 +14,7 @@ const useLogin = (username, password) => {
         user: username,
         password,
       });
-      if (response.status === 200 && username =="PEDRO" || username =="JOSORIO" || username =="JEDUARDO") {
+      if (response.status === 200 && username =="PEDRO" || username =="JOSORIO" || username =="JEDUARDO" || username =="HUGO") {
           // Guardar sesión en localStorage
         localStorage.setItem("authToken", response.data.token || "dummy-token");
         localStorage.setItem("username", username);

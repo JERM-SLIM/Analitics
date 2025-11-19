@@ -88,6 +88,12 @@ const useOrdersData = () => {
   const [sortBy, setSortBy] = useState("unidades"); // Nuevo estado
   const [sortOrder, setSortOrder] = useState("desc"); // Nuevo estado
 
+
+
+    // Nuevos estados para filtros
+  const [statusFilter, setStatusFilter] = useState("all"); // "all", "active", "paused", "closed"
+  const [titleFilter, setTitleFilter] = useState("");
+
   // ahora es un objeto para mapear sets por publicación
   const preciosPorPublicacion = {};
 
@@ -450,57 +456,70 @@ const sortedByMontoTotal =[...items].sort(
   const pageCount = Math.max(1, Math.ceil(items.length / pageSize));
 
   // En useOrdersData.js - VAMOS A VERIFICAR LA FUNCIÓN visibleRows:// visibleRows corregido
-// visibleRows corregido
-const visibleRows = useMemo(() => {
-  let sorted = [...items];
+ const visibleRows = useMemo(() => {
+    let filtered = [...items];
 
-  switch (sortBy) {
-    case "ventas":
-      sorted.sort((a, b) => {
-        const aVal = a.totalVendidos ?? 0;
-        const bVal = b.totalVendidos ?? 0;
-        return sortOrder === "desc" ? bVal - aVal : aVal - bVal;
-      });
-      break;
+    // Aplicar filtro por status
+    if (statusFilter !== "all") {
+      filtered = filtered.filter(item => 
+        item.STATUS_PUBLICACION === statusFilter
+      );
+    }
 
-    case "utilidad":
-      sorted.sort((a, b) => {
-        const aVal = a.totalUtilidad ?? 0;
-        const bVal = b.totalUtilidad ?? 0;
-        return sortOrder === "desc" ? bVal - aVal : aVal - bVal;
-      });
-      break;
+    // Aplicar filtro por título
+    if (titleFilter.trim() !== "") {
+      const searchTerm = titleFilter.toLowerCase().trim();
+      filtered = filtered.filter(item =>
+        item.titulo?.toLowerCase().includes(searchTerm)
+      );
+    }
 
-case "monto":
-  sorted.sort((a, b) => {
-    const aVal = Number(a.totalMonto ?? a.precio ?? 0);
-    const bVal = Number(b.totalMonto ?? b.precio ?? 0);
-    return sortOrder === "desc" ? bVal - aVal : aVal - bVal;
-  });
-  break;
-
-
-    case "unidades":
-    default:
-      sorted.sort((a, b) => {
-        const aVal = a.vendidos ?? 0;
-        const bVal = b.vendidos ?? 0;
-        if (bVal !== aVal) {
+    // Aplicar ordenamiento
+    switch (sortBy) {
+      case "ventas":
+        filtered.sort((a, b) => {
+          const aVal = a.totalVendidos ?? 0;
+          const bVal = b.totalVendidos ?? 0;
           return sortOrder === "desc" ? bVal - aVal : aVal - bVal;
-        }
-        // Si las unidades son iguales, ordenar por itemId
-        return String(a.itemId ?? "").localeCompare(String(b.itemId ?? ""));
-      });
-      break;
-  }
+        });
+        break;
 
-  const start = page * pageSize;
-  return sorted.slice(start, start + pageSize).map((item, idx) => ({
-    ...item,
-    registro: start + idx + 1,
-    comision_unitaria: item.comision_unitaria ?? 0,
-  }));
-}, [items, sortBy, sortOrder, page, pageSize]);
+      case "utilidad":
+        filtered.sort((a, b) => {
+          const aVal = a.totalUtilidad ?? 0;
+          const bVal = b.totalUtilidad ?? 0;
+          return sortOrder === "desc" ? bVal - aVal : aVal - bVal;
+        });
+        break;
+
+      case "monto":
+        filtered.sort((a, b) => {
+          const aVal = Number(a.totalMonto ?? a.precio ?? 0);
+          const bVal = Number(b.totalMonto ?? b.precio ?? 0);
+          return sortOrder === "desc" ? bVal - aVal : aVal - bVal;
+        });
+        break;
+
+      case "unidades":
+      default:
+        filtered.sort((a, b) => {
+          const aVal = a.vendidos ?? 0;
+          const bVal = b.vendidos ?? 0;
+          if (bVal !== aVal) {
+            return sortOrder === "desc" ? bVal - aVal : aVal - bVal;
+          }
+          return String(a.itemId ?? "").localeCompare(String(b.itemId ?? ""));
+        });
+        break;
+    }
+
+    const start = page * pageSize;
+    return filtered.slice(start, start + pageSize).map((item, idx) => ({
+      ...item,
+      registro: start + idx + 1,
+      comision_unitaria: item.comision_unitaria ?? 0,
+    }));
+  }, [items, statusFilter, titleFilter, sortBy, sortOrder, page, pageSize]);
 
 
 
@@ -801,7 +820,12 @@ case "monto":
     sortBy,
     setSortBy,
     sortOrder,
-    setSortOrder
+    setSortOrder,
+        // Nuevas propiedades para filtros
+    statusFilter,
+    setStatusFilter,
+    titleFilter,
+    setTitleFilter,
   };
 };
 
