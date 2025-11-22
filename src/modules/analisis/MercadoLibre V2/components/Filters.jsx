@@ -186,7 +186,6 @@ const Filters = ({
                   }}
                   sx={{
                     backgroundColor: "rgba(38, 50, 56, 0.8)",
-                    color: "#fff",
                     borderRadius: 2,
                     "& .MuiOutlinedInput-notchedOutline": {
                       borderColor: "rgba(255, 255, 255, 0.2)",
@@ -201,13 +200,13 @@ const Filters = ({
                   label="Tienda"
                 >
                   <MenuItem value="all">
-                    <Typography sx={{ color: "#cfd8dc" }}>
+                    <Typography sx={{ color: "#cfd8dc", backgroundColor: "rgba(38, 50, 56, 0.8)"  }}>
                       🏪 Todas las tiendas
                     </Typography>
                   </MenuItem>
                   {stores.map((s) => (
                     <MenuItem key={s.seller_id} value={s.seller_id?.toString() || ""}>
-                      <Typography sx={{ color: "#fff" }}>
+                      <Typography sx={{ color: "#fff",      backgroundColor: "rgba(38, 50, 56, 0.8)"  }}>
                         {s.nickname}
                       </Typography>
                     </MenuItem>

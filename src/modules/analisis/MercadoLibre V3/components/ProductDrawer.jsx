@@ -206,7 +206,7 @@ const ProductDrawer = ({ selectedRow, drawerOpen, setDrawerOpen }) => {
           {/* COSTOS */}
           <Grid item xs={6}>
             <CompactCard title="Costos" icon={<PieChart />} color="#f44336">
-              <Metric label="Costo/Unidad" value={selectedRow.costo_total_unitario} formulaKey="costo_total_unitario" isCurrency />
+              <Metric label="(Comisión + Publicidad)/Unidad" value={selectedRow.costo_total_unitario} formulaKey="costo_total_unitario" isCurrency />
               <Metric label="Publicidad" value={selectedRow.costo_publicidad} formulaKey="costo_publicidad" isCurrency />
               <Metric label="Comisiones" value={selectedRow.comision} formulaKey="comision" isCurrency />
             </CompactCard>

@@ -85,16 +85,204 @@ const useOrdersData = () => {
   const [pageSize, setPageSize] = useState(100);
   const [selectedRow, setSelectedRow] = useState(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [sortBy, setSortBy] = useState("unidades"); // Nuevo estado
-  const [sortOrder, setSortOrder] = useState("desc"); // Nuevo estado
+  const [sortBy, setSortBy] = useState("unidades");
+  const [sortOrder, setSortOrder] = useState("desc");
 
-
-
-    // Nuevos estados para filtros
-  const [statusFilter, setStatusFilter] = useState("all"); // "all", "active", "paused", "closed"
+  // Nuevos estados para filtros
+  const [statusFilter, setStatusFilter] = useState("all");
   const [titleFilter, setTitleFilter] = useState("");
 
-  // ahora es un objeto para mapear sets por publicación
+  // 🔹 NUEVOS ESTADOS PARA EL CARRITO DE COMPRAS
+  const [selectedProducts, setSelectedProducts] = useState([]);
+  const [purchaseOrders, setPurchaseOrders] = useState([]);
+  const [productSuppliers, setProductSuppliers] = useState({});
+
+  // 🔹 FUNCIÓN PARA CONSULTAR PROVEEDORES DE UN PRODUCTO
+  const fetchProductSuppliers = async (codigoSlim) => {
+    try {
+      const response = await axios.get(`https://diler.com.mx:9092/costos?codigo_slim=${codigoSlim}`, {
+        headers: { 
+          Token: "v1qDm0ZuIEKFDIm/SNYKeg==", 
+          Accept: "application/json" 
+        },
+      });
+      
+      return response.data.result || [];
+    } catch (error) {
+      console.error(`Error fetching suppliers for ${codigoSlim}:`, error);
+      return [];
+    }
+  };
+
+  // 🔹 FUNCIÓN PARA OBTENER PROVEEDORES DE UN PRODUCTO ESPECÍFICO
+  const getProductSuppliers = (productId) => {
+    return productSuppliers[productId] || [];
+  };
+
+  const getSuggestedSupplier = (costo) => {
+    if (costo <= 50) return "Proveedor A";
+    if (costo <= 120) return "Proveedor B";
+    return "Proveedor C";
+  };
+
+  // 🔹 FUNCIONES MEJORADAS PARA EL CARRITO
+  const addToPurchaseCart = async (product) => {
+    // Si ya tenemos los proveedores en caché, usarlos
+    if (!productSuppliers[product.id]) {
+      // Consultar proveedores desde la API
+      const suppliers = await fetchProductSuppliers(product.id);
+      setProductSuppliers(prev => ({
+        ...prev,
+        [product.id]: suppliers
+      }));
+      
+      // Si hay proveedores, usar el de menor costo como predeterminado
+      if (suppliers.length > 0) {
+        const cheapestSupplier = suppliers.reduce((min, supplier) => 
+          supplier.COST < min.COST ? supplier : min
+        );
+        
+        setSelectedProducts(prev => {
+          const exists = prev.find(p => p.id === product.id);
+          if (exists) {
+            return prev.map(p => 
+              p.id === product.id 
+                ? { 
+                    ...p, 
+                    quantity: (p.quantity || 1) + 1,
+                    proveedor: cheapestSupplier.NOMBRE,
+                    costo_unitario: cheapestSupplier.COST,
+                    proveedor_id: cheapestSupplier.PROVEEDOR_ID,
+                    suppliers: suppliers
+                  }
+                : p
+            );
+          }
+          
+          return [...prev, { 
+            ...product, 
+            quantity: 1,
+            proveedor: cheapestSupplier.NOMBRE,
+            costo_unitario: cheapestSupplier.COST,
+            proveedor_id: cheapestSupplier.PROVEEDOR_ID,
+            suppliers: suppliers
+          }];
+        });
+      } else {
+        // Si no hay proveedores, usar el método anterior
+        const proveedor = getSuggestedSupplier(product.costo_unitario || product.COSTO || 0);
+        setSelectedProducts(prev => {
+          const exists = prev.find(p => p.id === product.id);
+          if (exists) {
+            return prev.map(p => 
+              p.id === product.id 
+                ? { ...p, quantity: (p.quantity || 1) + 1 }
+                : p
+            );
+          }
+          
+          return [...prev, { 
+            ...product, 
+            quantity: 1,
+            proveedor,
+            costo_unitario: product.costo_unitario || product.COSTO || 0
+          }];
+        });
+      }
+    } else {
+      // Usar proveedores en caché
+      const suppliers = productSuppliers[product.id];
+      if (suppliers.length > 0) {
+        const cheapestSupplier = suppliers.reduce((min, supplier) => 
+          supplier.COST < min.COST ? supplier : min
+        );
+        
+        setSelectedProducts(prev => {
+          const exists = prev.find(p => p.id === product.id);
+          if (exists) {
+            return prev.map(p => 
+              p.id === product.id 
+                ? { 
+                    ...p, 
+                    quantity: (p.quantity || 1) + 1,
+                    proveedor: cheapestSupplier.NOMBRE,
+                    costo_unitario: cheapestSupplier.COST,
+                    proveedor_id: cheapestSupplier.PROVEEDOR_ID,
+                    suppliers: suppliers
+                  }
+                : p
+            );
+          }
+          
+          return [...prev, { 
+            ...product, 
+            quantity: 1,
+            proveedor: cheapestSupplier.NOMBRE,
+            costo_unitario: cheapestSupplier.COST,
+            proveedor_id: cheapestSupplier.PROVEEDOR_ID,
+            suppliers: suppliers
+          }];
+        });
+      }
+    }
+  };
+
+  const removeFromPurchaseCart = (productId) => {
+    setSelectedProducts(prev => prev.filter(p => p.id !== productId));
+  };
+
+  const updateProductQuantity = (productId, quantity) => {
+    if (quantity <= 0) {
+      removeFromPurchaseCart(productId);
+      return;
+    }
+    
+    setSelectedProducts(prev =>
+      prev.map(p =>
+        p.id === productId ? { ...p, quantity: Math.max(1, quantity) } : p
+      )
+    );
+  };
+
+  const updateProductSupplier = (productId, proveedorInfo) => {
+    setSelectedProducts(prev =>
+      prev.map(p =>
+        p.id === productId ? { 
+          ...p, 
+          proveedor: proveedorInfo.NOMBRE,
+          costo_unitario: proveedorInfo.COST,
+          proveedor_id: proveedorInfo.PROVEEDOR_ID
+        } : p
+      )
+    );
+  };
+
+  const createPurchaseOrder = (orderData) => {
+    const newOrder = {
+      id: `ORD-${Date.now()}`,
+      date: new Date().toISOString(),
+      products: [...selectedProducts],
+      ...orderData,
+      status: 'pending',
+      total: selectedProducts.reduce((sum, product) => 
+        sum + ((product.costo_unitario || 0) * product.quantity), 0
+      )
+    };
+    
+    setPurchaseOrders(prev => [...prev, newOrder]);
+    setSelectedProducts([]);
+    
+    // Mostrar confirmación
+    alert(`✅ Orden de compra creada exitosamente!\nID: ${newOrder.id}\nTotal: $${newOrder.total.toFixed(2)}`);
+    
+    return newOrder;
+  };
+
+  // Función para limpiar todo el carrito
+  const clearCart = () => {
+    setSelectedProducts([]);
+  };
+
   const preciosPorPublicacion = {};
 
   const fetchStores = async () => {
@@ -116,7 +304,7 @@ const useOrdersData = () => {
     if (abortControllerRef.current) abortControllerRef.current.abort();
     abortControllerRef.current = new AbortController();
     setLoading(true);
-
+    
     try {
       const selectedStoresArr = selectedStore === "all"
         ? stores
@@ -127,240 +315,111 @@ const useOrdersData = () => {
         setLoading(false);
         return;
       }
+      
+      const res = await axios.get("https://diler.com.mx:9092/orders/mercado/agrupado", {
+        params: {
+          p_seller: selectedStore === "all" ? "SLIM" : "SLIM",
+          p_status: "paid",
+          p_date_from: fromDate,
+          p_date_to: toDate,
+        },
+        headers: {
+          Token: "v1qDm0ZuIEKFDIm/SNYKeg==",
+          Accept: "application/json",
+        },
+      });
 
-      const summaryMap = {};
+      const data = res.data?.result || [];
 
-      for (const store of selectedStoresArr) {
-        const res = await axios.get("https://diler.com.mx:9092/orders/search", {
-          params: {
-            seller: store.seller_id,
-            inicio: `${fromDate} 00:00:00.000-06:00`,
-            fin: `${toDate} 23:59:59.000-06:00`,
-          },
-          headers: { Token: "v1qDm0ZuIEKFDIm/SNYKeg==", Accept: "application/json" },
-          signal: abortControllerRef.current.signal,
-        });
-
-        const itemsRaw = res.data.result || [];
-        const shippingGroups = {};
-        
-        // Agrupar por envío (PACK_ID o SHIPPING_ID)
-        for (const it of itemsRaw) {
-          const groupKey = it.PACK_ID || it.SHIPPING_ID || `${it.ID}`;
-          if (!shippingGroups[groupKey]) {
-            shippingGroups[groupKey] = { 
-              totalShipping: 0, 
-              items: [],
-              uniqueProducts: new Set(), // Para contar productos diferentes
-              hasShippingCost: false
-            };
-          }
-          
-          const shippingVal = Number(it.SHIPPING_COST || 0);
-          if (shippingVal > 0) {
-            shippingGroups[groupKey].totalShipping = shippingVal;
-            shippingGroups[groupKey].hasShippingCost = true;
-          }
-          
-          // Identificar producto único por item_id + variation_id
-          const productKey = `${it.ITEM_ID}_${it.VARIATION_ID || 0}`;
-          shippingGroups[groupKey].uniqueProducts.add(productKey);
-          shippingGroups[groupKey].items.push(it);
-        }
-
-        for (const groupKey of Object.keys(shippingGroups)) {
-          const group = shippingGroups[groupKey];
-          const totalShipping = group.totalShipping || 0;
-          const hasShippingCost = group.hasShippingCost;
-          const uniqueProductsCount = group.uniqueProducts.size;
-
-          console.log('Grupo:', groupKey, 'Productos únicos:', uniqueProductsCount, 'Total Shipping:', totalShipping);
-
-          if (hasShippingCost && uniqueProductsCount > 0) {
-            // Calcular costo de envío por producto único
-            const shippingPerProduct = totalShipping / uniqueProductsCount;
-            console.log('Costo de envío por producto:', shippingPerProduct);
-            
-            // Distribuir el costo entre los productos únicos
-            const productShippingMap = new Map();
-            let assignedShipping = 0;
-            let assignedCount = 0;
-            
-            // Primera pasada: asignar equitativamente a cada producto único
-            for (const productKey of group.uniqueProducts) {
-              if (assignedCount < uniqueProductsCount - 1) {
-                productShippingMap.set(productKey, shippingPerProduct);
-                assignedShipping += shippingPerProduct;
-              } else {
-                // Último producto recibe el remanente para evitar decimales
-                productShippingMap.set(productKey, totalShipping - assignedShipping);
-              }
-              assignedCount++;
-            }
-
-            // Segunda pasada: procesar cada item aplicando el costo correspondiente
-            for (const item of group.items) {
-              const productKey = `${item.ITEM_ID}_${item.VARIATION_ID || 0}`;
-              const productShipping = productShippingMap.get(productKey) || 0;
-              const vendidos = Number(item.QUANTITY || 0);
-              
-              // El costo de envío por unidad para este ítem (orden) se calcula dividiendo el envío del producto entre las unidades de este ítem
-              const envioUnitario = vendidos > 0 ? productShipping / vendidos : productShipping;
-              const costoEnvioLinea = productShipping; // El costo de envío total para este ítem (orden) es el asignado al producto
-              
-              console.log('Procesando item:', item.ITEM_ID, 'Product shipping:', productShipping, 'Unitario:', envioUnitario);
-              
-              processItem(item, costoEnvioLinea, envioUnitario, store, summaryMap);
-            }
-          } else {
-            // Grupo sin costo de envío
-            for (const item of group.items) {
-              processItem(item, 0, 0, store, summaryMap);
-            }
-          }
-        }
-      }
-
-      // Función helper para procesar cada item
-      function processItem(item, costoEnvioLinea, envioUnitario, store, summaryMap) {
-        const itemId = item.ITEM_ID;
-        const variante_id = item.VARIATION_ID || 0;
-        const orderId = item.ID;
-        const key = `${itemId}_${variante_id}`;
-        const orderKey2 = `${orderId}_${key}`;
-        const fechaDiaStr = item.date_ads 
-          ? (new Date(item.date_ads)).toISOString().split('T')[0] 
-          : formatLocalDate(new Date()); // fallback hoy si no hay fecha
-        const adsKey = `${key}_${fechaDiaStr}`;
-        const vendidos = Number(item.QUANTITY || 0);
-        const costo = Number(item.COSTO_ULTIMA_COMPRA || 0);
-        const comision = Number(item.SALE_FEE || 0);
-        const costoPublicidad = item.COSTO_ADS != null ? parseFloat(item.COSTO_ADS) : 0;
-        const precio = Number(item.UNIT_PRICE || 0);
-        const total = Number(item.TOTAL || 0);
-        const picture_url = item.PICTURE_URL;
-        const STATUS_PUBLICACION = item.STATUS_PUBLICACION; // Nuevo campo
-
-        if (!summaryMap[key]) {
-          summaryMap[key] = {
-            id: key,
-            itemId,
-            variante_id,
-            store: store.nickname,
-            titulo: item.TITLE,
-            vendidos: 0,
-            totalCosto: 0,
-            costo_unitario: costo,
-            totalComision: 0,
-            comision_unitaria: comision,
-            totalCostoEnvio: 0,
-            costoEnvio_unitario: 0,
-            totalCostoPublicidad: 0,
-            costoPublicidad_unitario: costoPublicidad,
-            precio_total: 0,
-            precio_unitario: precio,
-            transfer: Number(item.TRANSFER || 0),
-            fulfillment: Number(item.FULFILLMENT || 0),
-            on_the_way: Number(item.ON_THE_WAY || 0),
-            STATUS_PUBLICACION: STATUS_PUBLICACION || null,  // 👈 Asegúrate de traerlo
-            itemsOrdenesContadas: {},
-            adsPorDiaContados: {},
-            picture_url,
-            precio_variable: false
-          };
-          preciosPorPublicacion[key] = new Set();
-        }
-
-        const record = summaryMap[key];
-        preciosPorPublicacion[key].add(precio);
-        record.precio_variable = preciosPorPublicacion[key].size > 1;
-
-        console.log(
-          "Item", item.ITEM_ID,
-          "Fecha", fechaDiaStr,
-          "Costo Ads", Number(costoPublicidad || 0),
-          "Total acumulado", record.totalCostoPublicidad
-        );
-        
-        // Sumar publicidad solo una vez por día
-        if (!record.adsPorDiaContados[adsKey]) {
-          record.totalCostoPublicidad = (record.totalCostoPublicidad || 0) + Number(costoPublicidad || 0);
-          record.adsPorDiaContados[adsKey] = true;
-        }
-
-        // Evitar duplicados por la misma fila en un mismo pedido
-        if (!record.itemsOrdenesContadas[orderKey2]) {
-          record.totalComision += comision;
-          record.totalCostoEnvio += costoEnvioLinea;
-          record.totalCosto += costo * vendidos;
-          record.itemsOrdenesContadas[orderKey2] = true;
-        }
-
-        // Actualizar totales y unitarios
-        record.vendidos += vendidos;
-        record.precio_total += total;
-        const totalUnidades = record.vendidos || 0;
-        record.costoPublicidad_unitario = totalUnidades > 0
-          ? record.totalCostoPublicidad / totalUnidades
-          : 0;
-        record.comision_unitaria = totalUnidades ? record.totalComision / totalUnidades : 0;
-        const unidadesConEnvio = Object.values(record.itemsOrdenesContadas).length;
-        record.costoEnvio_unitario = unidadesConEnvio > 0
-          ? record.totalCostoEnvio / unidadesConEnvio
-          : 0;
-      }
-
-      // Convertir a array final
-      const allItems = Object.values(summaryMap).map((i) => {
-        const totalCostos = Number(i.totalCosto || 0) + Number(i.totalComision || 0) + Number(i.totalCostoEnvio || 0) + Number(i.totalCostoPublicidad || 0);
-        const utilidad_unitaria = i.vendidos
-          ? truncate2Decimals(i.precio_unitario - (i.costo_unitario + i.comision_unitaria + i.costoEnvio_unitario + i.costoPublicidad_unitario))
-          : 0;
-        const utilidad_total = truncate2Decimals(utilidad_unitaria * (i.vendidos || 0));
-        
-        const totalMonto = (i.precio_total || 0) ;
-        const totalUtilidad = utilidad_total;
-        const totalVendidos = i.vendidos || 0;
-
-        i.utilidad_unitaria = utilidad_unitaria;
-        i.utilidad = utilidad_total;
+      const mapped = data.map((d, idx) => {
+        const vendidos = Number(d.TOTAL_CANTIDAD_VENDIDA || 0);
+        const precio_total = Number(d.COMISION_UNITARIA_PROMEDIO || 0) + Number(d.COSTO_ENVIO_POR_UNIDAD || 0) + Number(d.TOTAL_PUBLICIDAD || 0);
+        const total_costos = Number(d.COMISION_UNITARIA_PROMEDIO || 0) + Number(d.COSTO_ENVIO_POR_UNIDAD || 0) + Number(d.TOTAL_PUBLICIDAD || 0);
+        const utilidad_total = Number(d.UTILIDAD_NETA || 0);
+        const utilidad_unitaria = vendidos > 0 ? utilidad_total / vendidos : 0;
 
         return {
-          id: i.id,
-          itemId: i.itemId,
-          variante_id: i.variante_id,
-          store: i.store,
-          titulo: i.titulo,
-          vendidos: Number(i.vendidos || 0),
-          precio: Number(i.precio_total || 0),
-          precio_variable: i.precio_variable || false,
-          precio_unitario: Number(i.precio_unitario || 0),
-          costo: Number(i.totalCosto || 0),
-          costo_unitario: Number(i.costo_unitario || 0),
-          comision: Number(i.totalComision || 0),
-          comision_unitaria: Number(i.comision_unitaria || 0),
-          costo_envio: Number(i.totalCostoEnvio || 0),
-          costoEnvio_unitario: Number(i.costoEnvio_unitario || 0),
-          costo_publicidad: Number(i.totalCostoPublicidad  || 0),
-          costoPublicidad_unitario: Number(i.costoPublicidad_unitario || 0),
-          total_costos: totalCostos,
-          utilidad: Number(utilidad_total),
-          utilidad_unitaria: Number(utilidad_unitaria),
-          transfer: Number(i.transfer || 0),
-          fulfillment: Number(i.fulfillment || 0),
-          on_the_way: Number(i.on_the_way || 0),
-          STATUS_PUBLICACION: i.STATUS_PUBLICACION || null,  // 👈 Asegúrate de traerlo
-          link: `https://articulo.mercadolibre.com.mx/MLM-${i.itemId?.substring?.(3) || i.itemId}`,
-          picture_url: i.picture_url,
-          totalMonto,
-          totalUtilidad,
-          totalVendidos
+          id: d.CODIGO,
+          codigo: d.CODIGO,
+          itemId: d.MELI,
+          titulo: d.SKU,
+          store: d.TIENDA,
+
+          // --- VENTAS ---
+          vendidos,
+          totalVendidos: vendidos,
+          numero_ordenes: Number(d.NUMERO_DE_ORDENES || 0),
+          unidades_por_orden: Number(d.UNIDADES_POR_ORDEN || 0),
+          ticket_promedio: Number(d.TICKET_PROMEDIO || 0),
+          desviacion_ventas: Number(d.DESVIACION_VENTAS ?? 0),
+
+          // --- PRECIOS ---
+          precio: precio_total,
+          totalMonto: Number(d.PRECIO_PROMEDIO_EFECTIVO * vendidos),
+          precio_unitario: vendidos > 0 ? precio_total / vendidos : 0,
+          precio_max: Number(d.PRECIO_MAX || 0),
+          precio_min: Number(d.PRECIO_MIN || 0),
+          precio_promedio_efectivo: Number(d.PRECIO_PROMEDIO_EFECTIVO || 0),
+          rango_precio: Number(d.RANGO_PRECIO || 0),
+          hubo_variacion_precio: Boolean(d.HUBO_VARIACION_PRECIO),
+
+          // --- COSTOS ---
+          costo: Number(d.COSTO_TOTAL || 0),
+          costo_unitario: Number(d.COSTO_TOTAL_UNITARIO || 0),
+          costo_total_unitario: Number(d.COSTO_TOTAL_UNITARIO || 0),
+          costo_envio: Number(d.TOTAL_ENVIO || 0),
+          costoEnvio_unitario: vendidos > 0 ? Number(d.TOTAL_ENVIO) / vendidos : 0,
+          costo_envio_por_unidad: Number(d.COSTO_ENVIO_POR_UNIDAD || 0),
+          costo_envio_promedio: Number(d.COSTO_ENVIO_PROMEDIO || 0),
+          costo_publicidad: Number(d.TOTAL_PUBLICIDAD || 0),
+          costoPublicidad_unitario: vendidos > 0 ? Number(d.TOTAL_PUBLICIDAD) / vendidos : 0,
+          total_costos: total_costos,
+
+          // --- COMISIÓN ---
+          comision: Number(d.TOTAL_COMISION || 0),
+          comision_unitaria: vendidos > 0 ? Number(d.TOTAL_COMISION) / vendidos : 0,
+          porcentaje_comision: Number(d.PORCENTAJE_COMISION || 0),
+          comision_unitaria_max: Number(d.COMISION_UNITARIA_MAX || 0),
+          comision_unitaria_min: Number(d.COMISION_UNITARIA_MIN || 0),
+          comision_unitaria_promedio: Number(d.COMISION_UNITARIA_PROMEDIO || 0),
+          comision_unitaria_rango: Number(d.COMISION_UNITARIA_RANGO || 0),
+          comision_unitaria_tiene_cambio: Boolean(d.COMISION_UNITARIA_TIENE_CAMBIO),
+
+          // --- UTILIDAD ---
+          utilidad: utilidad_total,
+          totalUtilidad: utilidad_total,
+          utilidad_unitaria: utilidad_unitaria,
+          utilidad_neta: Number(d.UTILIDAD_NETA || 0),
+          total_utilidad_bruta: Number(d.TOTAL_UTILIDAD_BRUTA || 0),
+          margen_bruto_porcentaje: Number(d.MARGEN_BRUTO_PORCENTAJE || 0),
+          margen_neto_porcentaje: Number(d.MARGEN_NETO_PORCENTAJE || 0),
+          margen_unitario: Number(d.MARGEN_UNITARIO || 0),
+          roi_publicidad: Number(d.ROI_PUBLICIDAD || 0),
+          score_rentabilidad: Number(d.SCORE_RENTABILIDAD || 0),
+
+          // --- STOCK ---
+          stock_total: Number(d.STOCK_TOTAL || 0),
+          stock_disponible: Number(d.STOCK_DISPONIBLE || 0),
+          stock_en_transito: Number(d.STOCK_EN_TRANSITO || 0),
+          stock_encamino: Number(d.ENV_ENCAMINO || 0),
+          stock_ful_transfer: Number(d.STOCK_FUL_TRANSFER || 0),
+          fulfillment_available: Number(d.FULFILLMENT_AVAILABLE || 0),
+          dias_inventario: Number(d.DIAS_INVENTARIO || 0),
+          riesgo_stock_out: d.RIESGO_STOCK_OUT || "BAJO_RIESGO",
+          sell_through_rate: Number(d.SELL_THROUGH_RATE || 0),
+          stock_a_cedis : Number(d["CH-MX"] || 0),
+          stock_calidad : Number(d.CALIDAD || 0),
+          stock_recibo : Number(d.RECIBO || 0),
+
+          // --- OTROS ---
+          picture_url: d.PICTURE_URL,
+          STATUS_PUBLICACION: d.STATUS_PUBLICACION,
         };
       });
 
-      setItems(allItems);
+      setItems(mapped);
     } catch (err) {
-      if (!axios.isCancel(err)) console.error("Error fetchData:", err);
+      console.error("Error cargando datos agrupados:", err);
       setItems([]);
     } finally {
       setLoading(false);
@@ -379,7 +438,7 @@ const useOrdersData = () => {
   const {
     topVentas,
     topUtilidad,
-    topMontoTotal, // 🔹 nuevo
+    topMontoTotal,
     totalVendidos,
     totalUtilidad,
     totalUtilidadSinCostos,
@@ -390,20 +449,13 @@ const useOrdersData = () => {
     if (!items.length) return {
       topVentas: [],
       topUtilidad: [],
-      topMontoTotal : [],
+      topMontoTotal: [],
       totalVendidos: 0,
       totalUtilidad: 0,
       totalUtilidadSinCostos: 0,
       ticketPromedio: 0,
       precioPromedio: 0,
       margenPromedio: 0,
-      totalVentas: 0,
-      totalCostos: 0,
-      margenBrutoPromedio: 0,
-      costoPromedioUnitario: 0,
-      productosPrecioVariable: 0,
-      topFulfillment: [],
-      topOnTheWay: []
     };
     
     const totalVentas = items.reduce((acc, i) => acc + Number(i.precio || 0), 0);
@@ -414,29 +466,21 @@ const useOrdersData = () => {
     const ticketPromedio = totalVendidos ? totalVentas / totalVendidos : 0;
     const precioPromedio = items.length ? totalVentas / items.length : 0;
     const margenPromedio = totalVentas ? (totalUtilidad / totalVentas) * 100 : 0;
-    const margenBrutoPromedio = totalVentas ? ((totalVentas - totalCostos) / totalVentas) * 100 : 0;
-    const costoPromedioUnitario = totalVendidos ? totalCostos / totalVendidos : 0;
-    const productosPrecioVariable = items.filter(i => i.precio_variable).length;
-    const topFulfillment = [...items].sort((a, b) => (b.fulfillment || 0) - (a.fulfillment || 0)).slice(0, 10);
-    const topOnTheWay = [...items].sort((a, b) => (b.on_the_way || 0) - (a.on_the_way || 0)).slice(0, 10);
 
-
-// 🔹 Ordenamientos
-const sortedByVentas = [...items].sort(
-  (a, b) => (b.totalVendidos || 0) - (a.totalVendidos || 0)
-);
-const sortedByUtilidad = [...items].sort(
-  (a, b) => (b.totalUtilidad || 0) - (a.totalUtilidad || 0)
-);
-const sortedByMontoTotal =[...items].sort(
-  (a, b) => (b.totalMonto || 0) - (a.totalMonto || 0)
-);
-
+    const sortedByVentas = [...items].sort(
+      (a, b) => (b.totalVendidos || 0) - (a.totalVendidos || 0)
+    );
+    const sortedByUtilidad = [...items].sort(
+      (a, b) => (b.totalUtilidad || 0) - (a.totalUtilidad || 0)
+    );
+    const sortedByMontoTotal = [...items].sort(
+      (a, b) => (b.totalMonto || 0) - (a.totalMonto || 0)
+    );
 
     return {
       topVentas: sortedByVentas.slice(0, 10),
       topUtilidad: sortedByUtilidad.slice(0, 10),
-      topMontoTotal: sortedByMontoTotal.slice(0, 10), // 🔹 agregado
+      topMontoTotal: sortedByMontoTotal.slice(0, 10),
       totalVentas,
       totalCostos,
       totalVendidos,
@@ -445,28 +489,20 @@ const sortedByMontoTotal =[...items].sort(
       ticketPromedio,
       precioPromedio,
       margenPromedio,
-      margenBrutoPromedio,
-      costoPromedioUnitario,
-      productosPrecioVariable,
-      topFulfillment,
-      topOnTheWay
     };
   }, [items]);
 
   const pageCount = Math.max(1, Math.ceil(items.length / pageSize));
 
-  // En useOrdersData.js - VAMOS A VERIFICAR LA FUNCIÓN visibleRows:// visibleRows corregido
- const visibleRows = useMemo(() => {
+  const visibleRows = useMemo(() => {
     let filtered = [...items];
 
-    // Aplicar filtro por status
     if (statusFilter !== "all") {
       filtered = filtered.filter(item => 
         item.STATUS_PUBLICACION === statusFilter
       );
     }
 
-    // Aplicar filtro por título
     if (titleFilter.trim() !== "") {
       const searchTerm = titleFilter.toLowerCase().trim();
       filtered = filtered.filter(item =>
@@ -474,7 +510,6 @@ const sortedByMontoTotal =[...items].sort(
       );
     }
 
-    // Aplicar ordenamiento
     switch (sortBy) {
       case "ventas":
         filtered.sort((a, b) => {
@@ -520,8 +555,6 @@ const sortedByMontoTotal =[...items].sort(
       comision_unitaria: item.comision_unitaria ?? 0,
     }));
   }, [items, statusFilter, titleFilter, sortBy, sortOrder, page, pageSize]);
-
-
 
   const exportItemsWithTotalsToExcel = async () => {
     try {
@@ -816,16 +849,25 @@ const sortedByMontoTotal =[...items].sort(
     exportPageToExcel,
     exportAllToExcel,
     exportItemsWithTotalsToExcel,
-    // Agregar los nuevos estados para filtros
     sortBy,
     setSortBy,
     sortOrder,
     setSortOrder,
-        // Nuevas propiedades para filtros
     statusFilter,
     setStatusFilter,
     titleFilter,
     setTitleFilter,
+    selectedProducts,
+    setSelectedProducts,
+    purchaseOrders,
+    addToPurchaseCart,
+    removeFromPurchaseCart,
+    updateProductQuantity,
+    updateProductSupplier,
+    createPurchaseOrder,
+    clearCart,
+    getProductSuppliers,
+    productSuppliers,
   };
 };
 

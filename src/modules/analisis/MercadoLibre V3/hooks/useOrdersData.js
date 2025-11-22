@@ -224,6 +224,9 @@ const mapped = data.map((d, idx) => {
   dias_inventario: Number(d.DIAS_INVENTARIO || 0),
   riesgo_stock_out: d.RIESGO_STOCK_OUT || "BAJO_RIESGO",
   sell_through_rate: Number(d.SELL_THROUGH_RATE || 0),
+  stock_a_cedis : Number(d["CH-MX"] || 0),
+  stock_calidad : Number(d.CALIDAD || 0),
+  stock_recibo : Number(d.RECIBO || 0),
   // clasificacion_abc: d.CLASIFICACION_ABC || "C",
 
   // --- OTROS ---
