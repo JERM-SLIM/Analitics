@@ -252,7 +252,7 @@ const handleConfirmarConProveedores = async () => {
        console.log(`Respuesta del servidor para ${datos.proveedorNombre}:`, saveResponse.data);
         
         // ✅ CORRECCIÓN: Verificar respuesta según el formato corregido del backend
-        const esExitoso = saveResponse.data?.status === 200;
+        const esExitoso = saveResponse.data?.success;
         
         resultados.push({
           folio: folio,
