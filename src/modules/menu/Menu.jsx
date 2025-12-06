@@ -6,6 +6,8 @@ import MercadoLibreDashboard from "../analisis/MercadoLibre/MercadoLibreDashboar
 import MercadoLibreDashboardV2 from "../analisis/MercadoLibre V2/MercadoLibreDashboard";
 
 import MercadoLibreDashboardV3 from "../analisis/MercadoLibre V3/MercadoLibreDashboard";
+import MercadoLibreDashboardV4 from "../analisis/MercadoLibre V4/MercadoLibreDashboard";
+
 
 
 export default function Menu() {
@@ -26,6 +28,11 @@ export default function Menu() {
       title: "MercadoLibre Pedidos",
       description: "Próximas métricas y análisis.",
       component: <MercadoLibreDashboardV3 />,
+    },
+    {
+      title: "Ventas Globales",
+      description: "MERCADO LIBRE V4",
+      component: <MercadoLibreDashboardV4 />,
     },
   ];
 

@@ -1,4 +1,4 @@
-// useOrdersData.js
+// useOrdersData.js - VERSIÓN COMPLETA CON CARRITO
 import { useState, useEffect, useRef, useMemo } from "react";
 import ExcelJS from "exceljs";
 import { saveAs } from "file-saver";
@@ -74,8 +74,8 @@ async function appendRowWithImage(ws, rowIndex, rowData, imageUrl, imageColIndex
 }
 
 const useOrdersData = () => {
-  const [stores, setStores] = useState([]);
-  const [selectedStore, setSelectedStore] = useState("97892065");
+  //const [stores, setStores] = useState([]);
+ // const [selectedStore, setSelectedStore] = useState("97892065");
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
   const [fromDate, setFromDate] = useState(formatLocalDate(new Date()));
@@ -88,11 +88,15 @@ const useOrdersData = () => {
   const [sortBy, setSortBy] = useState("unidades");
   const [sortOrder, setSortOrder] = useState("desc");
 
+  // Estados del carrito - AGREGAR ESTOS
+  const [cart, setCart] = useState([]);
+  const [showCart, setShowCart] = useState(false);
+
   // Nuevos estados para filtros
   const [statusFilter, setStatusFilter] = useState("all");
   const [titleFilter, setTitleFilter] = useState("");
 
-    // 🆕 NUEVOS FILTROS - Agrega estos estados
+  // 🆕 NUEVOS FILTROS
   const [margenMin, setMargenMin] = useState("");
   const [margenMax, setMargenMax] = useState("");
   const [roiMin, setRoiMin] = useState("");
@@ -101,8 +105,45 @@ const useOrdersData = () => {
   const [abcFilter, setAbcFilter] = useState("all");
   const [onlyWithStockRisk, setOnlyWithStockRisk] = useState(false);
   const [onlyVariablePrice, setOnlyVariablePrice] = useState(false);
+const [proveedoresPorCodigo, setProveedoresPorCodigo] = useState({});
+const [loadingProveedores, setLoadingProveedores] = useState({});
+const [selectedProveedores, setSelectedProveedores] = useState({});
 
-  const fetchStores = async () => {
+// Función para obtener proveedores de un producto
+const fetchProveedores = async (codigo) => {
+  if (!codigo) return;
+  
+  // Si ya tenemos los proveedores, no hacer la petición
+  if (proveedoresPorCodigo[codigo] !== undefined) return;
+  
+  setLoadingProveedores(prev => ({ ...prev, [codigo]: true }));
+  
+  try {
+    const res = await axios.get(`https://diler.com.mx:9092/costos?codigo_slim=${codigo}`, {
+      headers: {
+        Token: "v1qDm0ZuIEKFDIm/SNYKeg==",
+        Accept: "application/json",
+      },
+    });
+    
+    if (res.data && res.data.result) {
+      setProveedoresPorCodigo(prev => ({
+        ...prev,
+        [codigo]: res.data.result
+      }));
+    }
+  } catch (err) {
+    console.error(`Error cargando proveedores para ${codigo}:`, err);
+    setProveedoresPorCodigo(prev => ({
+      ...prev,
+      [codigo]: [] // Si hay error, poner array vacío
+    }));
+  } finally {
+    setLoadingProveedores(prev => ({ ...prev, [codigo]: false }));
+  }
+};
+
+  /* const fetchStores = async () => {
     try {
       const res = await axios.get("https://diler.com.mx:9092/seller/access", {
         headers: { Token: "v1qDm0ZuIEKFDIm/SNYKeg==", Accept: "application/json" },
@@ -112,29 +153,91 @@ const useOrdersData = () => {
       console.error("Error cargando tiendas:", err);
       setStores([]);
     }
-  };
+  };*/
 
-const fetchData = async () => {
-      if (!stores.length || !fromDate || !toDate) return;
-
-    setPage(0);
-    if (abortControllerRef.current) abortControllerRef.current.abort();
-    abortControllerRef.current = new AbortController();
-    setLoading(true);
-  try {
-      const selectedStoresArr = selectedStore === "all"
-        ? stores
-        : stores.filter((s) => s.seller_id?.toString() === selectedStore);
-
-      if (!selectedStoresArr.length) {
-        setItems([]);
-        setLoading(false);
-        return;
+// Funciones del carrito - AGREGAR ESTAS
+// Modifica la función toggleCartItem para obtener proveedores automáticamente:
+const toggleCartItem = (item) => {
+  setCart(prevCart => {
+    const exists = prevCart.some(cartItem => cartItem.codigo === item.codigo);
+    if (exists) {
+      return prevCart.filter(cartItem => cartItem.codigo !== item.codigo);
+    } else {
+      // Cuando se agrega al carrito, obtener proveedores
+      if (item.codigo && !proveedoresPorCodigo[item.codigo]) {
+        fetchProveedores(item.codigo);
       }
       
-    const res = await axios.get("https://diler.com.mx:9092/orders/mercado/agrupado", {
+      return [...prevCart, { 
+        ...item, 
+        cartQuantity: 1,
+        addedAt: new Date().toISOString()
+      }];
+    }
+  });
+};
+
+const updateCartQuantity = (codigo, quantity) => {
+  setCart(prevCart =>
+    prevCart.map(item =>
+      item.codigo === codigo 
+        ? { ...item, cartQuantity: Math.max(1, quantity) }
+        : item
+    )
+  );
+};
+
+const removeFromCart = (codigo) => {
+  setCart(prevCart => prevCart.filter(item => item.codigo !== codigo));
+};
+
+const clearCart = () => {
+  setCart([]);
+};
+
+// Calcular totales del carrito
+const cartTotals = useMemo(() => {
+  if (!cart || !Array.isArray(cart)) {
+    return {
+      totalItems: 0,
+      totalProducts: 0,
+      totalValue: 0,
+      totalCost: 0,
+      totalProfit: 0,
+      margin: 0
+    };
+  }
+  
+  const totalItems = cart.reduce((sum, item) => sum + (item.cartQuantity || 1), 0);
+  const totalProducts = cart.length;
+  const totalValue = cart.reduce((sum, item) => 
+    sum + (item.precio_promedio_efectivo || 0) * (item.cartQuantity || 1), 0
+  );
+  const totalCost = cart.reduce((sum, item) => 
+    sum + (item.total_costos || 0) * (item.cartQuantity || 1), 0
+  );
+  const totalProfit = cart.reduce((sum, item) => 
+    sum + (item.utilidad || 0) * (item.cartQuantity || 1), 0
+  );
+  
+  return {
+    totalItems,
+    totalProducts,
+    totalValue,
+    totalCost,
+    totalProfit,
+    margin: totalValue > 0 ? ((totalProfit / totalValue) * 100) : 0
+  };
+}, [cart]);
+
+const fetchData = async () => {
+  if (abortControllerRef.current) abortControllerRef.current.abort();
+  abortControllerRef.current = new AbortController();
+  setLoading(true);
+  
+  try {
+    const res = await axios.get("https://diler.com.mx:9092/orders/mercado/agrupado/v2", {
       params: {
-        p_seller: selectedStore === "all" ? "SLIM" : "SLIM",
         p_status: "paid",
         p_date_from: fromDate,
         p_date_to: toDate,
@@ -147,90 +250,79 @@ const fetchData = async () => {
 
     const data = res.data?.result || [];
 
-    // En useOrdersData.js - dentro de fetchData, actualiza el mapeo:
-const mapped = data.map((d, idx) => {
-  const vendidos = Number(d.TOTAL_CANTIDAD_VENDIDA || 0);
-  const precio_total = Number(d.COMISION_UNITARIA_PROMEDIO || 0) + Number(d.COSTO_ENVIO_POR_UNIDAD || 0) + Number(d.TOTAL_PUBLICIDAD || 0);
-  const total_costos = Number(d.COMISION_UNITARIA_PROMEDIO || 0) + Number(d.COSTO_ENVIO_POR_UNIDAD || 0) + Number(d.TOTAL_PUBLICIDAD || 0);
-  const utilidad_total = Number(d.UTILIDAD_NETA || 0);
-  const utilidad_unitaria = vendidos > 0 ? utilidad_total / vendidos : 0;
+    const mapped = data.map((d, idx) => {
+      const vendidos = Number(d.TOTAL_CANTIDAD_VENDIDA || 0);
+      const precio_total = Number(d.COMISION_UNITARIA_PROMEDIO || 0) + Number(d.COSTO_ENVIO_POR_UNIDAD || 0) + Number(d.TOTAL_PUBLICIDAD || 0);
+      const total_costos = Number(d.COMISION_UNITARIA_PROMEDIO || 0) + Number(d.COSTO_ENVIO_POR_UNIDAD || 0) + Number(d.TOTAL_PUBLICIDAD || 0);
+      const utilidad_total = Number(d.UTILIDAD_NETA || 0);
+      const utilidad_unitaria = vendidos > 0 ? utilidad_total / vendidos : 0;
 
-  return {
-  id: d.CODIGO,
-  codigo: d.CODIGO,
-  itemId: d.MELI,
-  titulo: d.SKU,
-  store: d.TIENDA,
-
-  // --- VENTAS ---
-  vendidos,
-  totalVendidos: vendidos,
-  numero_ordenes: Number(d.NUMERO_DE_ORDENES || 0),
-  unidades_por_orden: Number(d.UNIDADES_POR_ORDEN || 0),
-  ticket_promedio: Number(d.TICKET_PROMEDIO || 0),
-  desviacion_ventas: Number(d.DESVIACION_VENTAS ?? 0),
-
-  // --- PRECIOS ---
-  precio: precio_total,
-  totalMonto: precio_total,
-  precio_unitario: vendidos > 0 ? precio_total / vendidos : 0,
-  precio_max: Number(d.PRECIO_MAX || 0),
-  precio_min: Number(d.PRECIO_MIN || 0),
-  precio_promedio_efectivo: Number(d.PRECIO_PROMEDIO_EFECTIVO || 0),
-  rango_precio: Number(d.RANGO_PRECIO || 0),
-  hubo_variacion_precio: Boolean(d.HUBO_VARIACION_PRECIO),
-
-  // --- COSTOS ---
-  costo: Number(d.COSTO_TOTAL || 0), // si no existe, ajustamos aquí
-  costo_unitario: Number(d.COSTO_TOTAL_UNITARIO || 0),
-  costo_total_unitario: Number(d.COSTO_TOTAL_UNITARIO || 0),
-  costo_envio: Number(d.TOTAL_ENVIO || 0),
-  costoEnvio_unitario: vendidos > 0 ? Number(d.TOTAL_ENVIO) / vendidos : 0,
-  costo_envio_por_unidad: Number(d.COSTO_ENVIO_POR_UNIDAD || 0),
-  costo_envio_promedio: Number(d.COSTO_ENVIO_PROMEDIO || 0),
-  costo_publicidad: Number(d.TOTAL_PUBLICIDAD || 0),
-  costoPublicidad_unitario: vendidos > 0 ? Number(d.TOTAL_PUBLICIDAD) / vendidos : 0,
-  total_costos: total_costos,
-
-  // --- COMISIÓN ---
-  comision: Number(d.TOTAL_COMISION || 0),
-  comision_unitaria: vendidos > 0 ? Number(d.TOTAL_COMISION) / vendidos : 0,
-  porcentaje_comision: Number(d.PORCENTAJE_COMISION || 0),
-  comision_unitaria_max: Number(d.COMISION_UNITARIA_MAX || 0),
-  comision_unitaria_min: Number(d.COMISION_UNITARIA_MIN || 0),
-  comision_unitaria_promedio: Number(d.COMISION_UNITARIA_PROMEDIO || 0),
-  comision_unitaria_rango: Number(d.COMISION_UNITARIA_RANGO || 0),
-  comision_unitaria_tiene_cambio: Boolean(d.COMISION_UNITARIA_TIENE_CAMBIO),
-
-  // --- UTILIDAD ---
-  utilidad: utilidad_total,
-  totalUtilidad: utilidad_total,
-  utilidad_unitaria: utilidad_unitaria,
-  utilidad_neta: Number(d.UTILIDAD_NETA || 0),
-  total_utilidad_bruta: Number(d.TOTAL_UTILIDAD_BRUTA || 0),
-  margen_bruto_porcentaje: Number(d.MARGEN_BRUTO_PORCENTAJE || 0),
-  margen_neto_porcentaje: Number(d.MARGEN_NETO_PORCENTAJE || 0),
-  margen_unitario: Number(d.MARGEN_UNITARIO || 0),
-  roi_publicidad: Number(d.ROI_PUBLICIDAD || 0),
-  score_rentabilidad: Number(d.SCORE_RENTABILIDAD || 0),
-
-  // --- STOCK ---
-  stock_total: Number(d.STOCK_TOTAL || 0),
-  stock_disponible: Number(d.STOCK_DISPONIBLE || 0),
-  stock_en_transito: Number(d.STOCK_EN_TRANSITO || 0),
-  stock_encamino: Number(d.ENV_ENCAMINO || 0),
-  stock_ful_transfer: Number(d.STOCK_FUL_TRANSFER || 0),
-  fulfillment_available: Number(d.FULFILLMENT_AVAILABLE || 0),
-  dias_inventario: Number(d.DIAS_INVENTARIO || 0),
-  riesgo_stock_out: d.RIESGO_STOCK_OUT || "BAJO_RIESGO",
-  sell_through_rate: Number(d.SELL_THROUGH_RATE || 0),
-  // clasificacion_abc: d.CLASIFICACION_ABC || "C",
-
-  // --- OTROS ---
-  picture_url: d.PICTURE_URL,
-  STATUS_PUBLICACION: d.STATUS_PUBLICACION,
-  };
-});
+      return {
+        id: d.CODIGO,
+        codigo: d.CODIGO,
+        itemId: d.MELI,
+        titulo: d.SKU,
+        store: d.TIENDA,
+        vendidos,
+        totalVendidos: vendidos,
+        numero_ordenes: Number(d.NUMERO_DE_ORDENES || 0),
+        unidades_por_orden: Number(d.UNIDADES_POR_ORDEN || 0),
+        ticket_promedio: Number(d.TICKET_PROMEDIO || 0),
+        desviacion_ventas: Number(d.DESVIACION_VENTAS ?? 0),
+        precio: precio_total,
+        totalMonto: precio_total,
+        precio_unitario: vendidos > 0 ? precio_total / vendidos : 0,
+        precio_max: Number(d.PRECIO_MAX || 0),
+        precio_min: Number(d.PRECIO_MIN || 0),
+        precio_promedio_efectivo: Number(d.PRECIO_PROMEDIO_EFECTIVO || 0),
+        rango_precio: Number(d.RANGO_PRECIO || 0),
+        hubo_variacion_precio: Boolean(d.HUBO_VARIACION_PRECIO),
+        costo: Number(d.COSTO_TOTAL || 0),
+        costo_unitario: Number(d.COSTO_TOTAL_UNITARIO || 0),
+        costo_total_unitario: Number(d.COSTO_TOTAL_UNITARIO || 0),
+        costo_envio: Number(d.TOTAL_ENVIO || 0),
+        costoEnvio_unitario: vendidos > 0 ? Number(d.TOTAL_ENVIO) / vendidos : 0,
+        costo_envio_por_unidad: Number(d.COSTO_ENVIO_POR_UNIDAD || 0),
+        costo_envio_promedio: Number(d.COSTO_ENVIO_PROMEDIO || 0),
+        costo_publicidad: Number(d.TOTAL_PUBLICIDAD || 0),
+        costoPublicidad_unitario: vendidos > 0 ? Number(d.TOTAL_PUBLICIDAD) / vendidos : 0,
+        total_costos: total_costos,
+        comision: Number(d.TOTAL_COMISION || 0),
+        comision_unitaria: vendidos > 0 ? Number(d.TOTAL_COMISION) / vendidos : 0,
+        porcentaje_comision: Number(d.PORCENTAJE_COMISION || 0),
+        comision_unitaria_max: Number(d.COMISION_UNITARIA_MAX || 0),
+        comision_unitaria_min: Number(d.COMISION_UNITARIA_MIN || 0),
+        comision_unitaria_promedio: Number(d.COMISION_UNITARIA_PROMEDIO || 0),
+        comision_unitaria_rango: Number(d.COMISION_UNITARIA_RANGO || 0),
+        comision_unitaria_tiene_cambio: Boolean(d.COMISION_UNITARIA_TIENE_CAMBIO),
+        utilidad: utilidad_total,
+        totalUtilidad: utilidad_total,
+        utilidad_unitaria: utilidad_unitaria,
+        utilidad_neta: Number(d.UTILIDAD_NETA || 0),
+        total_utilidad_bruta: Number(d.TOTAL_UTILIDAD_BRUTA || 0),
+        margen_bruto_porcentaje: Number(d.MARGEN_BRUTO_PORCENTAJE || 0),
+        margen_neto_porcentaje: Number(d.MARGEN_NETO_PORCENTAJE || 0),
+        margen_unitario: Number(d.MARGEN_UNITARIO || 0),
+        roi_publicidad: Number(d.ROI_PUBLICIDAD || 0),
+        score_rentabilidad: Number(d.SCORE_RENTABILIDAD || 0),
+        stock_total: Number(d.STOCK_TOTAL || 0),
+        stock_disponible: Number(d.STOCK_DISPONIBLE || 0),
+        stock_en_transito: Number(d.STOCK_EN_TRANSITO || 0),
+        stock_encamino: Number(d.ENV_ENCAMINO || 0),
+        stock_ful_transfer: Number(d.STOCK_FUL_TRANSFER || 0),
+        fulfillment_available: Number(d.FULFILLMENT_AVAILABLE || 0),
+        dias_inventario: Number(d.DIAS_INVENTARIO || 0),
+        riesgo_stock_out: d.RIESGO_STOCK_OUT || "BAJO_RIESGO",
+        sell_through_rate: Number(d.SELL_THROUGH_RATE || 0),
+        stock_a_cedis : Number(d["CH-MX"] || 0),
+        stock_calidad : Number(d.CALIDAD || 0),
+        stock_recibo : Number(d.RECIBO || 0),
+        combo_detalle: d.COMBOS_DONDE_SE_VENDE || [],
+        tiene_combos: (d.COMBOS_DONDE_SE_VENDE && d.COMBOS_DONDE_SE_VENDE.length > 0) || false,
+        picture_url: d.PICTURE_URL,
+        STATUS_PUBLICACION: d.STATUS_PUBLICACION,
+      };
+    });
 
     setItems(mapped);
   } catch (err) {
@@ -241,14 +333,18 @@ const mapped = data.map((d, idx) => {
   }
 };
 
-  useEffect(() => {
-    fetchStores();
-  }, []);
+  // useEffect(() => {
+  //   fetchStores();
+  // }, []);
 
-  const handleBuscar = () => {
-    setPage(0);
-    fetchData();
-  };
+const handleBuscar = () => {
+  console.log("🔘 Botón Buscar clickeado");
+  console.log("📅 Fecha desde:", fromDate);
+  console.log("📅 Fecha hasta:", toDate);
+  
+  setPage(0);
+  fetchData();
+};
 
   const {
     topVentas,
@@ -338,15 +434,18 @@ const mapped = data.map((d, idx) => {
       );
     }
 
-    // Aplicar filtro por título
-    if (titleFilter.trim() !== "") {
-      const searchTerm = titleFilter.toLowerCase().trim();
-      filtered = filtered.filter(item =>
-        item.titulo?.toLowerCase().includes(searchTerm)
-      );
-    }
+  // Aplicar filtro por título o código
+if (titleFilter.trim() !== "") {
+  const searchTerm = titleFilter.toLowerCase().trim();
 
-    
+  filtered = filtered.filter(item => {
+    const t = item.titulo?.toLowerCase() || "";
+    const c = String(item.codigo || "").toLowerCase();
+
+    return t.includes(searchTerm) || c.includes(searchTerm);
+  });
+}
+
   // 🆕 FILTRO POR MARGEN NETO
   if (margenMin !== "") {
     const min = parseFloat(margenMin);
@@ -451,7 +550,6 @@ const mapped = data.map((d, idx) => {
   }, [items, 
   statusFilter, 
   titleFilter, 
-  // 🆕 Agrega las dependencias de los nuevos filtros
   margenMin, margenMax,
   roiMin, roiMax,
   stockRiskFilter,
@@ -585,7 +683,7 @@ const mapped = data.map((d, idx) => {
     }
   };
 
-  // Las funciones exportPageToExcel y exportAllToExcel se mantienen similares pero actualizadas con nuevos campos
+  // Las funciones exportPageToExcel y exportAllToExcel se mantienen similares
 const exportPageToExcel = async () => {
     try {
       if (!visibleRows || visibleRows.length === 0) {
@@ -748,7 +846,7 @@ const exportPageToExcel = async () => {
   };
 
   return {
-    stores,
+    // stores,
     items,
     loading,
     fetchData: handleBuscar,
@@ -761,8 +859,8 @@ const exportPageToExcel = async () => {
     ticketPromedio,
     precioPromedio,
     margenPromedio,
-    selectedStore,
-    setSelectedStore,
+    // selectedStore,
+    // setSelectedStore,
     fromDate,
     setFromDate,
     toDate,
@@ -780,7 +878,6 @@ const exportPageToExcel = async () => {
     exportPageToExcel,
     exportAllToExcel,
     exportItemsWithTotalsToExcel,
-    // Filtros y ordenamiento
     sortBy,
     setSortBy,
     sortOrder,
@@ -789,23 +886,42 @@ const exportPageToExcel = async () => {
     setStatusFilter,
     titleFilter,
     setTitleFilter,
-  // 🆕 NUEVOS FILTROS - Agrégalos aquí
-  margenMin,
-  setMargenMin,
-  margenMax,
-  setMargenMax,
-  roiMin,
-  setRoiMin,
-  roiMax,
-  setRoiMax,
-  stockRiskFilter,
-  setStockRiskFilter,
-  abcFilter,
-  setAbcFilter,
-  onlyWithStockRisk,
-  setOnlyWithStockRisk,
-  onlyVariablePrice,
-  setOnlyVariablePrice,
+    margenMin,
+    setMargenMin,
+    margenMax,
+    setMargenMax,
+    roiMin,
+    setRoiMin,
+    roiMax,
+    setRoiMax,
+    stockRiskFilter,
+    setStockRiskFilter,
+    abcFilter,
+    setAbcFilter,
+    onlyWithStockRisk,
+    setOnlyWithStockRisk,
+    onlyVariablePrice,
+    setOnlyVariablePrice,
+    // 🛒 AGREGAR ESTAS PROPIEDADES DEL CARRITO
+    cart,
+    toggleCartItem,
+    updateCartQuantity,
+    removeFromCart,
+    clearCart,
+    cartTotals,
+    showCart,
+    setShowCart,
+    proveedoresPorCodigo,
+  loadingProveedores,
+  fetchProveedores, // Para poder forzar la carga si es necesario
+    // 🚚 Estados y funciones de proveedores
+  proveedoresPorCodigo,
+  loadingProveedores,
+  fetchProveedores,
+  
+  // ✅ AÑADE ESTOS DOS - SON LOS QUE FALTAN
+  selectedProveedores,
+  setSelectedProveedores,
   };
 };
 

@@ -93,28 +93,6 @@ export default function OrdersCards({
             {row.stock_encamino || 0}
           </Typography>
         </Grid>
-
-        <Grid item xs={6}>
-          <Typography variant="body2">CH a MX:</Typography>
-          <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
-            {row.stock_a_cedis || 0}
-          </Typography>
-        </Grid>
- <Grid item xs={6}>
-          <Typography variant="body2">Recibo:</Typography>
-          <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
-            {row.stock_recibo || 0}
-          </Typography>
-        </Grid>
-         <Grid item xs={6}>
-          <Typography variant="body2">Calidad:</Typography>
-          <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
-            {row.stock_calidad || 0}
-          </Typography>
-        </Grid>
-
-    
-
         <Grid item xs={6}>
           <Typography variant="body2">Días inventario:</Typography>
           <Typography variant="body2" sx={{ fontWeight: 'bold' }}>

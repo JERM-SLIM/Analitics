@@ -318,7 +318,7 @@ const useOrdersData = () => {
       
       const res = await axios.get("https://diler.com.mx:9092/orders/mercado/agrupado", {
         params: {
-          p_seller: selectedStore === "all" ? "SLIM" : "SLIM",
+          //p_seller: selectedStore === "all" ? "SLIM" : "SLIM",
           p_status: "paid",
           p_date_from: fromDate,
           p_date_to: toDate,
