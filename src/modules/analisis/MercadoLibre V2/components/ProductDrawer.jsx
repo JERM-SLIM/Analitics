@@ -69,7 +69,7 @@ const ProductDrawer = ({ selectedRow, drawerOpen, setDrawerOpen }) => {
               color: selectedRow.precio_variable ? "#ff6b6b" : "#fff",
             }}
           >
-            {formatCurrency(selectedRow.precio_unitario)}
+            {formatCurrency(selectedRow.precio_promedio_efectivo)}
           </Typography>
           
           <Typography sx={{ color: "#fff" }}>Comisión unitaria</Typography>
@@ -77,31 +77,44 @@ const ProductDrawer = ({ selectedRow, drawerOpen, setDrawerOpen }) => {
           <Typography sx={{ color: "#fff" }}>Envío unitario</Typography>
           <Typography sx={{ color: "#fff" }}>- {formatCurrency(selectedRow.costoEnvio_unitario)}</Typography>
           <Typography sx={{ color: "#fff" }}>Publicidad unitaria</Typography>
-          <Typography sx={{ color: "#fff" }}>- {formatCurrency(selectedRow.costoPublicidad_unitario)}</Typography>
-          <Typography sx={{ color: "#fff", fontWeight: "bold" }}>Costo unitario</Typography>
-          <Typography sx={{ color: "#fff", fontWeight: "bold" }}>- {formatCurrency(selectedRow.costo_unitario)}</Typography>
+          <Typography sx={{ color: "#fff" }}>- {formatCurrency(selectedRow.costo_publicidad)}</Typography>
           <Typography sx={{ color: "#fff", fontWeight: "bold" }}>Utilidad unitaria</Typography>
           <Typography sx={{ color: "#fff", fontWeight: "bold" }}>= {formatNumber2(selectedRow.utilidad_unitaria)}</Typography>
           
           <Typography sx={{ color: "#fff", fontWeight: "bold", mt: 2 }}>Precio total</Typography>
-          <Typography sx={{ color: "#fff", fontWeight: "bold", mt: 2 }}>- {formatCurrency(selectedRow.precio)}</Typography>
+          <Typography sx={{ color: "#fff", fontWeight: "bold", mt: 2 }}>{formatCurrency(selectedRow.precio_promedio_efectivo * selectedRow.vendidos)}</Typography>
           <Typography sx={{ color: "#fff" }}>Comisión total</Typography>
           <Typography sx={{ color: "#fff" }}>- {formatCurrency(selectedRow.comision)}</Typography>
           <Typography sx={{ color: "#fff" }}>Costo envío total</Typography>
           <Typography sx={{ color: "#fff" }}>- {formatCurrency(selectedRow.costo_envio)}</Typography>
           <Typography sx={{ color: "#fff" }}>Publicidad total</Typography>
           <Typography sx={{ color: "#fff" }}>- {formatCurrency(selectedRow.costo_publicidad)}</Typography>
-          <Typography sx={{ color: "#fff", fontWeight: "bold" }}>Costo total</Typography>
-          <Typography sx={{ color: "#fff", fontWeight: "bold" }}>- {formatCurrency(selectedRow.costo)}</Typography>
           <Typography sx={{ color: "#fff", fontWeight: "bold" }}>Utilidad</Typography>
           <Typography sx={{ color: "#fff", fontWeight: "bold" }}>= {formatCurrency(selectedRow.utilidad)}</Typography>
           
-          <Typography sx={{ color: "#fff" }}>Transfer</Typography>
+
+
+          <Typography sx={{ color: "#fff" }}>En Transito: </Typography>
           <Typography sx={{ color: "#fff" }}>{selectedRow.transfer ?? 0}</Typography>
-          <Typography sx={{ color: "#fff" }}>Fulfillment</Typography>
-          <Typography sx={{ color: "#fff" }}>{selectedRow.fulfillment ?? 0}</Typography>
-          <Typography sx={{ color: "#fff" }}>En Camino</Typography>
-          <Typography sx={{ color: "#fff" }}>{selectedRow.on_the_way ?? 0}</Typography>
+
+
+          <Typography sx={{ color: "#fff" }}>Disponible: </Typography>
+          <Typography sx={{ color: "#fff" }}>{selectedRow.stock_disponible ?? 0}</Typography>
+
+          <Typography sx={{ color: "#fff" }}>En Camino: </Typography>
+          <Typography sx={{ color: "#fff" }}>{selectedRow.stock_encamino ?? 0}</Typography>
+
+          <Typography sx={{ color: "#fff" }}>Recibo: </Typography>
+          <Typography sx={{ color: "#fff" }}>{selectedRow.stock_recibo ?? 0}</Typography>
+
+          <Typography sx={{ color: "#fff" }}>Calidad: </Typography>
+          <Typography sx={{ color: "#fff" }}>{selectedRow.stock_calidad ?? 0}</Typography>
+
+          <Typography sx={{ color: "#fff" }}>CH a MX: </Typography>
+          <Typography sx={{ color: "#fff" }}>{selectedRow.stock_a_cedis ?? 0}</Typography>
+          
+
+
         </Box>
 
         <Box sx={{ mt: 2 }}>

@@ -1,7 +1,7 @@
 // MercadoLibreDashboard.jsx
-import React from "react";
+import React, { useState } from "react";
 import { Box, Typography, Button } from "@mui/material";
-import { ShoppingCart as ShoppingCartIcon } from "@mui/icons-material"; // Agregar esta importación
+import { ShoppingCart as ShoppingCartIcon } from "@mui/icons-material";
 
 import Filters from "./components/Filters";
 import Kpis from "./components/Kpis";
@@ -12,6 +12,9 @@ import useOrdersData from "./hooks/useOrdersData";
 import SelectedProductsPage from "./components/SelectedProductsPage";
 import PurchaseDrawer from "./components/PurchaseDrawer";
 import PurchaseCart from "./components/PurchaseCart";
+import CartSummary from "./components/CartSummary";
+import FloatingCartButton from "./components/FloatingCartButton";
+import CheckoutPage from "./components/CheckoutPage";
 
 function MercadoLibreDashboard() {
   const {
@@ -54,27 +57,58 @@ function MercadoLibreDashboard() {
     setStatusFilter,
     titleFilter,
     setTitleFilter,
-    // 🔹 NUEVOS ESTADOS Y FUNCIONES
     selectedProducts,
     setSelectedProducts,
     purchaseOrders,
     addToPurchaseCart,
     removeFromPurchaseCart,
     updateProductQuantity,
-    updateProductSupplier, // Nueva función
+    updateProductSupplier,
     createPurchaseOrder,
-    clearCart, // Nueva función
+    cart,
+    toggleCartItem,
+    updateCartQuantity,
+    removeFromCart,
+    clearCart,
+    cartTotals,
+    proveedoresPorCodigo,
+    loadingProveedores,
+    fetchProveedores,
+    selectedProveedores,
+    setSelectedProveedores,
   } = useOrdersData();
 
   // Estados locales
-  const [drawerPurchaseOpen, setDrawerPurchaseOpen] = React.useState(false);
-  const [drawerProduct, setDrawerProduct] = React.useState(null);
-  const [view, setView] = React.useState("main");
+  const [drawerPurchaseOpen, setDrawerPurchaseOpen] = useState(false);
+  const [drawerProduct, setDrawerProduct] = useState(null);
+  const [view, setView] = useState("main");
+
+  // Estado para controlar qué vista mostrar
+  const [showCheckout, setShowCheckout] = useState(false);
+  const [showCart, setShowCart] = useState(false);
+
+  // Si estamos en modo checkout, mostrar la página de resumen
+  if (showCheckout) {
+    return (
+      <CheckoutPage 
+        cart={cart || []}
+        cartTotals={cartTotals}
+        onBack={() => setShowCheckout(false)}
+        selectedProveedores={selectedProveedores}
+        proveedoresPorCodigo={proveedoresPorCodigo}
+      />
+    );
+  }
 
   const handleOpenPurchaseDrawer = (product) => {
     setDrawerProduct(product);
     setDrawerPurchaseOpen(true);
   };
+
+  // Variables seguras para evitar undefined
+  const safeSelectedProducts = selectedProducts || [];
+  const safeSelectedProductsCount = safeSelectedProducts.length;
+  const safeCart = cart || [];
   
   return (
     <Box sx={{ padding: 2, background: "linear-gradient(135deg,#0f2027 0%,#203a43 50%,#2c5364 100%)", minHeight: "100vh" }}>
@@ -105,32 +139,7 @@ function MercadoLibreDashboard() {
 
      {/* Botón para ver carrito */}
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
-        <Button
-          variant="contained"
-          color="warning"
-          onClick={() => setView("selected-products")}
-          startIcon={<ShoppingCartIcon />}
-          sx={{ 
-            position: 'relative',
-            '&::after': selectedProducts.length > 0 ? {
-              content: `"${selectedProducts.length}"`,
-              position: 'absolute',
-              top: -8,
-              right: -8,
-              backgroundColor: 'red',
-              color: 'white',
-              borderRadius: '50%',
-              width: 20,
-              height: 20,
-              fontSize: '0.75rem',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            } : {}
-          }}
-        >
-          Ver Carrito ({selectedProducts.length})
-        </Button>
+       
 
         <Box sx={{ display: "flex", gap: 1 }}>
           <Button variant="contained" color="success" onClick={exportPageToExcel}>
@@ -145,9 +154,9 @@ function MercadoLibreDashboard() {
       {view === "main" && (
         <>
           {/* 🔹 MOSTRAR CARRITO DE COMPRAS */}
-          {selectedProducts.length > 0 && (
+          {safeSelectedProductsCount > 0 && (
             <PurchaseCart
-              selectedProducts={selectedProducts}
+              selectedProducts={safeSelectedProducts}
               onRemoveProduct={removeFromPurchaseCart}
               onUpdateQuantity={updateProductQuantity}
               onCreateOrder={createPurchaseOrder}
@@ -155,18 +164,24 @@ function MercadoLibreDashboard() {
           )}
 
           <OrdersTable
-            items={items}
-            page={page}
-            setPage={setPage}
-            pageSize={pageSize}
-            setPageSize={setPageSize}
-            visibleRows={visibleRows}
-            pageCount={pageCount}
-            setSelectedRow={setSelectedRow}
-            setDrawerOpen={setDrawerOpen}
-            selectedProducts={selectedProducts}
-            setSelectedProducts={setSelectedProducts}
-          />
+          items={items}
+          page={page}
+          setPage={setPage}
+          pageSize={pageSize}
+          setPageSize={setPageSize}
+          visibleRows={visibleRows}
+          pageCount={pageCount}
+          setSelectedRow={setSelectedRow}
+          setDrawerOpen={setDrawerOpen}
+          cart={safeCart}
+          toggleCartItem={toggleCartItem}
+          cartTotals={cartTotals}
+          proveedoresPorCodigo={proveedoresPorCodigo}
+          loadingProveedores={loadingProveedores}
+          fetchProveedores={fetchProveedores}
+          selectedProveedores={selectedProveedores}
+          setSelectedProveedores={setSelectedProveedores}
+        />
 
           <ProductDrawer
             selectedRow={selectedRow}
@@ -179,16 +194,36 @@ function MercadoLibreDashboard() {
       {view === "selected-products" && (
         <SelectedProductsPage
           items={items}
-          selectedProducts={selectedProducts}
+          selectedProducts={safeSelectedProducts}
           onOpenDrawer={handleOpenPurchaseDrawer}
         />
       )}
 
-      <PurchaseDrawer
-        open={drawerPurchaseOpen}
-        onClose={() => setDrawerPurchaseOpen(false)}
-        product={drawerProduct}
+      {/* Drawer del carrito */}
+      <CartSummary
+        cart={safeCart}
+        open={showCart}
+        onClose={() => setShowCart(false)}
+        updateCartQuantity={updateCartQuantity}
+        removeFromCart={removeFromCart}
+        clearCart={clearCart}
+        cartTotals={cartTotals}
+        onCheckout={() => {
+          setShowCheckout(true);
+          setShowCart(false);
+        }}
+        proveedoresPorCodigo={proveedoresPorCodigo}
+        loadingProveedores={loadingProveedores}
+        selectedProveedores={selectedProveedores}
+        setSelectedProveedores={setSelectedProveedores}
       />
+
+      {/* Botón flotante del carrito */}
+      <FloatingCartButton 
+        cart={safeCart} 
+        onClick={() => setShowCart(true)} 
+      />
+
     </Box>
   );
 }

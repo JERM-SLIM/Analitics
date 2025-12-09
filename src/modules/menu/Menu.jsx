@@ -14,11 +14,6 @@ export default function Menu() {
   const [selectedCard, setSelectedCard] = useState(null);
 
   const cards = [
-    // {
-    //   title: "MercadoLibre Dashboard V1",
-    //   description: "Dashboard clásico de métricas.",
-    //   component: <MercadoLibreDashboard />,
-    // },
         {
       title: "MercadoLibre Dashboard V2",
       description: "Dashboard clásico de métricas.",

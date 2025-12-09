@@ -1,5 +1,4 @@
-// analisis/Analitics/src/modules/analisis/MercadoLibre V2/components/OrdersTable.jsx
-
+// OrdersTable.jsx
 import React from "react";
 import {
   Card,
@@ -14,9 +13,11 @@ import {
   Button,
   Tooltip,
   Grid,
+  IconButton,
+  Chip
 } from "@mui/material";
-import { Add as AddIcon } from "@mui/icons-material"; // Agregar esta importación
 import { DataGrid } from "@mui/x-data-grid";
+import { ShoppingCart as ShoppingCartIcon } from "@mui/icons-material";
 
 const OrdersTable = ({
   items,
@@ -28,8 +29,14 @@ const OrdersTable = ({
   pageCount,
   setSelectedRow,
   setDrawerOpen,
-  selectedProducts = [],
-  setSelectedProducts,
+  cart, // 🔹 Recibir el carrito
+  toggleCartItem, // 🔹 Recibir función para agregar/quitar del carrito
+  cartTotals,
+  proveedoresPorCodigo,
+  loadingProveedores,
+  fetchProveedores,
+  selectedProveedores,
+  setSelectedProveedores,
 }) => {
   
   const formatCurrency = (v) =>
@@ -47,16 +54,12 @@ const OrdersTable = ({
     setPage(0);
   };
 
-  const handleSelectionChange = (newSelection) => {
-    if (!setSelectedProducts) return; 
-    
-    const selectedItems = items.filter(item => 
-      newSelection.includes(item.id)
-    );
-    setSelectedProducts(selectedItems);
-  };
-
   const handlePageChange = (event, value) => setPage(value - 1);
+
+  // Verificar si un producto está en el carrito
+  const isInCart = (codigo) => {
+    return cart && cart.some(item => item.codigo === codigo);
+  };
 
   // Tooltip de stock detallado
   const StockTooltipContent = ({ row }) => (
@@ -145,7 +148,7 @@ const OrdersTable = ({
         );
       },
     },
-    { field: "titulo", headerName: "Título", flex: 4 },
+    { field: "titulo", headerName: "Título", flex: 3 },
     {
       field: "precio_promedio_efectivo",
       headerName: "Precio Unit.",
@@ -170,8 +173,8 @@ const OrdersTable = ({
         );
       },
     },
-    { field: "costo_unitario", headerName: "Costo Unit.", flex: 1, type: "number" },
-    { field: "vendidos", headerName: "Vendidos", flex: 0, type: "number" },
+    { field: "utilidad", headerName: "Utilidad Neta", flex: 2, type: "number" },
+    { field: "vendidos", headerName: "Vendidos", flex: 1, type: "number" },
     {
       field: "stock_total",
       headerName: "Stock",
@@ -194,81 +197,71 @@ const OrdersTable = ({
       },
     },
     {
-      field: "comision_unitaria",
-      headerName: "Comisión U.",
-      flex: 1,
-      type: "number",
-      renderCell: (params) => (
-        <Box
-          sx={{
-            width: "100%",
-            height: "100%",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "flex-end",
-            px: 2,
-          }}
-        >
-          {formatCurrency(params.value)}
-        </Box>
-      ),
-    },
-    {
-      field: "costoEnvio_unitario",
-      headerName: "Envío U.",
-      flex: 1,
-      type: "number",
-      renderCell: (params) => (
-        <Box
-          sx={{
-            width: "100%",
-            height: "100%",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "flex-end",
-            px: 2,
-          }}
-        >
-          {formatCurrency(params.value)}
-        </Box>
-      ),
-    },
-    {
-      field: "costoPublicidad_unitario",
-      headerName: "Publicidad U.",
-      flex: 1,
-      type: "number",
-    },
-    { field: "totalMonto", headerName: "Precio T.", flex: 0, type: "number" },
-    { field: "utilidad", headerName: "Utilidad T.", flex: 0, type: "number" },
-    {
       field: "acciones",
-      headerName: "Detalles",
-      width: 120,
-      renderCell: (params) => (
-        <Button
-          variant="contained"
-          size="small"
-          onClick={() => {
-            setSelectedRow(params.row);
-            setDrawerOpen(true);
-          }}
-        >
-          Ver
-        </Button>
-      ),
+      headerName: "Acciones",
+      width: 180,
+      renderCell: (params) => {
+        const enCarrito = isInCart(params.row.codigo);
+        const cantidadEnCarrito = cart.find(item => item.codigo === params.row.codigo)?.cartQuantity || 0;
+        
+        return (
+          <Box sx={{ display: "flex", gap: 1 }}>
+            <Tooltip title={enCarrito ? "Quitar del carrito" : "Agregar al carrito"}>
+              <IconButton
+                size="small"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleCartItem(params.row);
+                }}
+                sx={{
+                  backgroundColor: enCarrito ? "#4caf50" : "transparent",
+                  color: enCarrito ? "#fff" : "#4caf50",
+                  border: enCarrito ? "none" : "1px solid #4caf50",
+                  '&:hover': {
+                    backgroundColor: enCarrito ? "#388e3c" : "rgba(76, 175, 80, 0.1)"
+                  }
+                }}
+              >
+                <ShoppingCartIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+            
+            <Button
+              variant="contained"
+              size="small"
+              onClick={() => {
+                setSelectedRow(params.row);
+                setDrawerOpen(true);
+              }}
+            >
+              Ver Detalle
+            </Button>
+          </Box>
+        );
+      },
     },
   ];
-
-  // Obtener los IDs de los productos seleccionados para el DataGrid
-  const selectedIds = selectedProducts.map(p => p.id);
 
   return (
     <Card sx={{ backgroundColor: "#1e2a38" }}>
       <CardContent>
-        <Typography variant="h6" sx={{ color: "#fff", mb: 1 }}>
-          📄 Lista de publicaciones
-        </Typography>
+        <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
+          <Typography variant="h6" sx={{ color: "#fff" }}>
+            📄 Lista de publicaciones
+          </Typography>
+          
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+            <Chip 
+              label={`${cart.length} en carrito`} 
+              color="primary" 
+              variant="outlined"
+              size="small"
+            />
+            <Typography variant="body2" sx={{ color: "#90caf9" }}>
+              Total: {formatCurrency(cartTotals?.totalValue || 0)}
+            </Typography>
+          </Box>
+        </Box>
 
         <Box
           sx={{
@@ -323,11 +316,8 @@ const OrdersTable = ({
           density="compact"
           rowHeight={48}
           headerHeight={56}
-          disableSelectionOnClick
+          disableRowSelectionOnClick
           hideFooter
-          checkboxSelection
-          onRowSelectionModelChange={handleSelectionChange}
-          rowSelectionModel={selectedIds}
           sx={{
             height: 500,
             backgroundColor: "#263238",
@@ -339,8 +329,18 @@ const OrdersTable = ({
               top: 0,
               zIndex: 2,
             },
-            "& .MuiDataGrid-cell": { color: "#fff", py: 0.5 },
-            "& .MuiDataGrid-row": { cursor: "pointer" },
+            "& .MuiDataGrid-cell": { 
+              color: "#fff", 
+              py: 0.5,
+              display: "flex",
+              alignItems: "center"
+            },
+            "& .MuiDataGrid-row": { 
+              cursor: "pointer",
+              '&:hover': {
+                backgroundColor: "rgba(255, 255, 255, 0.05)"
+              }
+            },
           }}
         />
       </CardContent>

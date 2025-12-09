@@ -221,8 +221,8 @@ const handleConfirmarConProveedores = async () => {
             CODIGO: item.CODIGO,
             DESCRIPCION: item.DESCRIPCION,
             CANTIDAD_COTIZADA: item.CANTIDAD_COTIZADA,
-            COSTO: item.COSTO,
-            COSTO_NUEVO: item.COSTO_NUEVO,
+            COSTO:  item.COSTO_NUEVO,
+            COSTO_NUEVO: item.COSTO,
             FOLIO_COMPRA: "",
             PRECIO_UNITARIO: item.PRECIO_UNITARIO,
             CANTIDAD_POR_CAJA: item.CANTIDAD_POR_CAJA,
@@ -234,12 +234,14 @@ const handleConfirmarConProveedores = async () => {
         };
         
         console.log(`Enviando cotización para ${datos.proveedorNombre}...`);
-    
+
         const saveResponse = await api.post("/web/cotizaciones/save", cotizacionData);
         
        console.log(`Respuesta del servidor para ${datos.proveedorNombre}:`, saveResponse.data);
-       
-       const esExitoso = saveResponse.data?.success;
+        
+        // ✅ CORRECCIÓN: Verificar respuesta según el formato corregido del backend
+        const esExitoso = saveResponse.data?.success;
+        
         resultados.push({
           folio: folio,
           success: esExitoso,

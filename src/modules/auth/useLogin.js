@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
 import api from "../../services/api";
 import { useNavigate } from "react-router-dom";
+import CryptoJS from "crypto-js";
 
 const useLogin = (username, password) => {
   const navigate = useNavigate();
@@ -14,9 +15,10 @@ const useLogin = (username, password) => {
         user: username,
         password,
       });
-      if (response.status === 200 && username =="PEDRO" || username =="JOSORIO" || username =="JEDUARDO" || username =="HUGO") {
+      if (response.status === 200 && (username =="PEDRO" || username =="JOSORIO" || username =="JEDUARDO" || username =="HUGO")) {
           // Guardar sesión en localStorage
-        localStorage.setItem("authToken", response.data.token || "dummy-token");
+        const encryptedPassword = CryptoJS.AES.encrypt(password, "secret-key").toString();
+        localStorage.setItem("password", encryptedPassword);
         localStorage.setItem("username", username);
         navigate("/menu");
       }
