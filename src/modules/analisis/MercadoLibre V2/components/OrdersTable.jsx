@@ -113,7 +113,16 @@ const OrdersTable = ({
             {row.stock_recibo || 0}
           </Typography>
         </Grid>
+
+         <Grid item xs={6}>
+          <Typography variant="body2">Cotizacion:</Typography>
+          <Typography variant="body2" sx={{ fontWeight: "bold" }}>
+            {row.cotizacion || 0}
+          </Typography>
+        </Grid>
       </Grid>
+
+      
     </Box>
   );
 
@@ -149,6 +158,8 @@ const OrdersTable = ({
       },
     },
     { field: "titulo", headerName: "Título", flex: 3 },
+    { field: "store", headerName: "Tienda", flex: 3 },
+
     {
       field: "precio_promedio_efectivo",
       headerName: "Precio Unit.",

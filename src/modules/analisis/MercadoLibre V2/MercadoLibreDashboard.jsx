@@ -15,6 +15,7 @@ import PurchaseCart from "./components/PurchaseCart";
 import CartSummary from "./components/CartSummary";
 import FloatingCartButton from "./components/FloatingCartButton";
 import CheckoutPage from "./components/CheckoutPage";
+import CotizacionesListPage from "./components/Cotizaciones/CotizacionesListPage"; // 🆕 NUEVO COMPONENTE
 
 function MercadoLibreDashboard() {
   const {
@@ -57,6 +58,25 @@ function MercadoLibreDashboard() {
     setStatusFilter,
     titleFilter,
     setTitleFilter,
+    
+    // 🆕 AGREGAR TODOS LOS NUEVOS FILTROS
+    margenMin,
+    setMargenMin,
+    margenMax,
+    setMargenMax,
+    roiMin,
+    setRoiMin,
+    roiMax,
+    setRoiMax,
+    stockRiskFilter,
+    setStockRiskFilter,
+    abcFilter,
+    setAbcFilter,
+    onlyWithStockRisk,
+    setOnlyWithStockRisk,
+    onlyVariablePrice,
+    setOnlyVariablePrice,
+    
     selectedProducts,
     setSelectedProducts,
     purchaseOrders,
@@ -87,6 +107,20 @@ function MercadoLibreDashboard() {
   const [showCheckout, setShowCheckout] = useState(false);
   const [showCart, setShowCart] = useState(false);
 
+  const [showCotizaciones, setShowCotizaciones] = useState(false); 
+  
+  
+      // Si estamos en modo cotizaciones, mostrar la página de administración
+    if (showCotizaciones) {
+      return (
+        <CotizacionesListPage 
+          onBack={() => setShowCotizaciones(false)}
+          proveedoresPorCodigo={proveedoresPorCodigo}
+        />
+      );
+    }
+  
+
   // Si estamos en modo checkout, mostrar la página de resumen
   if (showCheckout) {
     return (
@@ -96,6 +130,8 @@ function MercadoLibreDashboard() {
         onBack={() => setShowCheckout(false)}
         selectedProveedores={selectedProveedores}
         proveedoresPorCodigo={proveedoresPorCodigo}
+        fromDate={fromDate}
+        toDate={toDate}
       />
     );
   }
@@ -135,13 +171,44 @@ function MercadoLibreDashboard() {
         setStatusFilter={setStatusFilter}
         titleFilter={titleFilter}
         setTitleFilter={setTitleFilter}
+        
+        // 🆕 PASAR LOS NUEVOS FILTROS AL COMPONENTE FILTERS
+        margenMin={margenMin}
+        setMargenMin={setMargenMin}
+        margenMax={margenMax}
+        setMargenMax={setMargenMax}
+        roiMin={roiMin}
+        setRoiMin={setRoiMin}
+        roiMax={roiMax}
+        setRoiMax={setRoiMax}
+        stockRiskFilter={stockRiskFilter}
+        setStockRiskFilter={setStockRiskFilter}
+        abcFilter={abcFilter}
+        setAbcFilter={setAbcFilter}
+        onlyWithStockRisk={onlyWithStockRisk}
+        setOnlyWithStockRisk={setOnlyWithStockRisk}
+        onlyVariablePrice={onlyVariablePrice}
+        setOnlyVariablePrice={setOnlyVariablePrice}
       />
 
-     {/* Botón para ver carrito */}
+      {/* Botón para ver carrito */}
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
-       
-
         <Box sx={{ display: "flex", gap: 1 }}>
+          {/* 🆕 BOTÓN PARA VER COTIZACIONES */}
+                   <Button
+                     variant="outlined"
+                     onClick={() => setShowCotizaciones(true)}
+                     sx={{
+                       color: '#fff',
+                       borderColor: '#fff',
+                       '&:hover': {
+                         borderColor: '#42a5f5',
+                         backgroundColor: 'rgba(66, 165, 245, 0.1)'
+                       }
+                     }}
+                   >
+                    Ver Cotizaciones
+                   </Button>
           <Button variant="contained" color="success" onClick={exportPageToExcel}>
             Descargar Página Actual
           </Button>
@@ -164,24 +231,24 @@ function MercadoLibreDashboard() {
           )}
 
           <OrdersTable
-          items={items}
-          page={page}
-          setPage={setPage}
-          pageSize={pageSize}
-          setPageSize={setPageSize}
-          visibleRows={visibleRows}
-          pageCount={pageCount}
-          setSelectedRow={setSelectedRow}
-          setDrawerOpen={setDrawerOpen}
-          cart={safeCart}
-          toggleCartItem={toggleCartItem}
-          cartTotals={cartTotals}
-          proveedoresPorCodigo={proveedoresPorCodigo}
-          loadingProveedores={loadingProveedores}
-          fetchProveedores={fetchProveedores}
-          selectedProveedores={selectedProveedores}
-          setSelectedProveedores={setSelectedProveedores}
-        />
+            items={items}
+            page={page}
+            setPage={setPage}
+            pageSize={pageSize}
+            setPageSize={setPageSize}
+            visibleRows={visibleRows}
+            pageCount={pageCount}
+            setSelectedRow={setSelectedRow}
+            setDrawerOpen={setDrawerOpen}
+            cart={safeCart}
+            toggleCartItem={toggleCartItem}
+            cartTotals={cartTotals}
+            proveedoresPorCodigo={proveedoresPorCodigo}
+            loadingProveedores={loadingProveedores}
+            fetchProveedores={fetchProveedores}
+            selectedProveedores={selectedProveedores}
+            setSelectedProveedores={setSelectedProveedores}
+          />
 
           <ProductDrawer
             selectedRow={selectedRow}
@@ -223,7 +290,6 @@ function MercadoLibreDashboard() {
         cart={safeCart} 
         onClick={() => setShowCart(true)} 
       />
-
     </Box>
   );
 }

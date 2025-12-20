@@ -238,7 +238,7 @@ const fetchData = async () => {
   try {
     const res = await axios.get("https://diler.com.mx:9092/orders/mercado/agrupado/v2", {
       params: {
-        p_status: "paid",
+        p_status: "paid,delivered",
         p_date_from: fromDate,
         p_date_to: toDate,
       },
@@ -311,6 +311,7 @@ const fetchData = async () => {
         stock_encamino: Number(d.ENV_ENCAMINO || 0),
         stock_ful_transfer: Number(d.STOCK_FUL_TRANSFER || 0),
         fulfillment_available: Number(d.FULFILLMENT_AVAILABLE || 0),
+        cotizacion: Number(d.CANTIDAD_COTIZADA || 0),
         dias_inventario: Number(d.DIAS_INVENTARIO || 0),
         riesgo_stock_out: d.RIESGO_STOCK_OUT || "BAJO_RIESGO",
         sell_through_rate: Number(d.SELL_THROUGH_RATE || 0),

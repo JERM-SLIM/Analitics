@@ -362,6 +362,12 @@ export default function OrdersCards({
             {row.stock_calidad || 0}
           </Typography>
         </Grid>
+         <Grid item xs={6}>
+          <Typography variant="body2">Cotizacion:</Typography>
+          <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
+            {row.cotizacion || 0}
+          </Typography>
+        </Grid>
 
         <Grid item xs={6}>
           <Typography variant="body2">Días inventario:</Typography>

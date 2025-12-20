@@ -11,6 +11,8 @@ import EnhancedKpis from "./components/EnhancedKpis";
 import CartSummary from "./components/CartSummary";
 import FloatingCartButton from "./components/FloatingCartButton";
 import CheckoutPage from "./components/CheckoutPage";
+import CotizacionesListPage from "./components/Cotizaciones/CotizacionesListPage"; // 🆕 NUEVO COMPONENTE
+
 
 function MercadoLibreDashboard() {
   const {
@@ -86,6 +88,19 @@ function MercadoLibreDashboard() {
   // Estado para controlar qué vista mostrar
   const [showCheckout, setShowCheckout] = useState(false);
   const [showCart, setShowCart] = useState(false);
+    const [showCotizaciones, setShowCotizaciones] = useState(false); 
+
+
+    // Si estamos en modo cotizaciones, mostrar la página de administración
+  if (showCotizaciones) {
+    return (
+      <CotizacionesListPage 
+        onBack={() => setShowCotizaciones(false)}
+        proveedoresPorCodigo={proveedoresPorCodigo}
+      />
+    );
+  }
+
 
   // Si estamos en modo checkout, mostrar la página de resumen
   if (showCheckout) {
@@ -97,6 +112,8 @@ function MercadoLibreDashboard() {
           // AÑADE ESTAS PROPS:
       selectedProveedores={selectedProveedores}
       proveedoresPorCodigo={proveedoresPorCodigo}
+       fromDate={fromDate}
+      toDate={toDate}
       />
     );
   }
@@ -116,6 +133,23 @@ function MercadoLibreDashboard() {
           Mercado Libre - Análisis de Ventas y Productos
         </Typography>
         
+          <Box sx={{ display: 'flex', gap: 2 }}>
+          {/* 🆕 BOTÓN PARA VER COTIZACIONES */}
+          <Button
+            variant="outlined"
+            onClick={() => setShowCotizaciones(true)}
+            sx={{
+              color: '#fff',
+              borderColor: '#fff',
+              '&:hover': {
+                borderColor: '#42a5f5',
+                backgroundColor: 'rgba(66, 165, 245, 0.1)'
+              }
+            }}
+          >
+            Ver Cotizaciones
+          </Button>
+
         {/* Botón para ir al checkout si hay productos en el carrito */}
         {cart.length > 0 && (
           <Button
@@ -134,6 +168,8 @@ function MercadoLibreDashboard() {
           </Button>
         )}
       </Box>  
+       </Box>
+
       
       {/* ✅ PASAR TODOS LOS FILTROS AL COMPONENTE FILTERS */}
       <Filters

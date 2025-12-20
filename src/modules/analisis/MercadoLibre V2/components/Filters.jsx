@@ -137,15 +137,15 @@ const Filters = ({
   };
 
   // Obtener etiqueta de clasificación ABC
-  // const getAbcLabel = (abc) => {
-  //   const abcLabels = {
-  //     "all": "Todas",
-  //     "A": "Clase A (Alto impacto)",
-  //     "B": "Clase B (Medio impacto)",
-  //     "C": "Clase C (Bajo impacto)"
-  //   };
-  //   return abcLabels[abc] || abc;
-  // };
+  const getAbcLabel = (abc) => {
+    const abcLabels = {
+      "all": "Todas",
+      "A": "Clase A (Alto impacto)",
+      "B": "Clase B (Medio impacto)",
+      "C": "Clase C (Bajo impacto)"
+    };
+    return abcLabels[abc] || abc;
+  };
 
   // Función para aplicar filtros y buscar
   const handleSearch = () => {
@@ -274,12 +274,12 @@ const getSelectedDaysAndHours = () => {
                   />
                 )}
                 {abcFilter !== "all" && (
-                  <Chip
-                    label={`ABC: ${abcFilter}`}
-                    size="small"
-                    sx={{ backgroundColor: "#9575cd", color: "#fff", fontWeight: 500 }}
-                  />
-                )}
+  <Chip
+    label={`ABC: ${getAbcLabel(abcFilter)}`}
+    size="small"
+    sx={{ backgroundColor: "#9575cd", color: "#fff", fontWeight: 500 }}
+  />
+)}
                 {onlyWithStockRisk && (
                   <Chip
                     label="Con Riesgo Stock"
@@ -550,34 +550,33 @@ const getSelectedDaysAndHours = () => {
                   </FormControl>
                 </Grid>
 
-                {/* Filtro Clasificación ABC - CORREGIDO
-                <Grid item xs={12} sm={6} md={3}>
-                  <FormControl fullWidth>
-                    <InputLabel sx={{ color: "#cfd8dc" }}>Clasificación ABC</InputLabel>
-                    <Select
-                      value={abcFilter}
-                      onChange={(e) => {
-                        setAbcFilter(e.target.value);
-                        setPage(0);
-                      }}
-                      sx={{
-                        backgroundColor: "rgba(38, 50, 56, 0.8)",
-                        color: "#fff",
-                        borderRadius: 2,
-                        "& .MuiOutlinedInput-notchedOutline": {
-                          borderColor: "rgba(255, 255, 255, 0.2)",
-                        }
-                      }}
-                      label="Clasificación ABC"
-                    >
-                      <MenuItem value="all">📊 Todas las clases</MenuItem>
-                      <MenuItem value="A">🅰️ Clase A (Alto impacto)</MenuItem>
-                      <MenuItem value="B">🅱️ Clase B (Medio impacto)</MenuItem>
-                      <MenuItem value="C">🅲️ Clase C (Bajo impacto)</MenuItem>
-                    </Select>
-                  </FormControl>
-                </Grid> */}
-
+               {/* Filtro Clasificación ABC - DESCOMENTADO */}
+<Grid item xs={12} sm={6} md={3}>
+  <FormControl fullWidth>
+    <InputLabel sx={{ color: "#cfd8dc" }}>Clasificación ABC</InputLabel>
+    <Select
+      value={abcFilter}
+      onChange={(e) => {
+        setAbcFilter(e.target.value);
+        setPage(0);
+      }}
+      sx={{
+        backgroundColor: "rgba(38, 50, 56, 0.8)",
+        color: "#fff",
+        borderRadius: 2,
+        "& .MuiOutlinedInput-notchedOutline": {
+          borderColor: "rgba(255, 255, 255, 0.2)",
+        }
+      }}
+      label="Clasificación ABC"
+    >
+      <MenuItem value="all">📊 Todas las clases</MenuItem>
+      <MenuItem value="A">🅰️ Clase A (Alto impacto)</MenuItem>
+      <MenuItem value="B">🅱️ Clase B (Medio impacto)</MenuItem>
+      <MenuItem value="C">🅲️ Clase C (Bajo impacto)</MenuItem>
+    </Select>
+  </FormControl>
+</Grid>
                 {/* Switches para filtros especiales - CORREGIDOS */}
                 <Grid item xs={12} sm={6} md={3}>
                   <FormControlLabel
