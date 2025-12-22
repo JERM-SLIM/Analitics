@@ -15,7 +15,8 @@ const useLogin = (username, password) => {
         user: username,
         password,
       });
-      if (response.status === 200 && (username =="PEDRO" || username =="JOSORIO" || username =="JEDUARDO" || username =="HUGO")) {
+      if (response.status === 200 && (username =="PEDRO" || username =="JOSORIO" || username =="JEDUARDO" || username =="HUGO"  || 
+        username =="SELENE" || username =="ALEJANDRO" )) {
           // Guardar sesión en localStorage
         const encryptedPassword = CryptoJS.AES.encrypt(password, "secret-key").toString();
         localStorage.setItem("password", encryptedPassword);

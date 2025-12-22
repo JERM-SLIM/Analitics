@@ -111,33 +111,46 @@ const [selectedProveedores, setSelectedProveedores] = useState({});
 
 // Función para obtener proveedores de un producto
 const fetchProveedores = async (codigo) => {
-  if (!codigo) return;
-  
-  // Si ya tenemos los proveedores, no hacer la petición
-  if (proveedoresPorCodigo[codigo] !== undefined) return;
-  
+  if (!codigo) return [];
+
+  // ⬇️ Si ya existen, regresar inmediatamente
+  if (proveedoresPorCodigo[codigo] !== undefined) {
+    return proveedoresPorCodigo[codigo];
+  }
+
   setLoadingProveedores(prev => ({ ...prev, [codigo]: true }));
-  
+
   try {
-    const res = await axios.get(`https://diler.com.mx:9092/costos?codigo_slim=${codigo}`, {
-      headers: {
-        Token: "v1qDm0ZuIEKFDIm/SNYKeg==",
-        Accept: "application/json",
-      },
-    });
-    
-    if (res.data && res.data.result) {
-      setProveedoresPorCodigo(prev => ({
-        ...prev,
-        [codigo]: res.data.result
-      }));
-    }
-  } catch (err) {
-    console.error(`Error cargando proveedores para ${codigo}:`, err);
+    const res = await axios.get(
+      `https://diler.com.mx:9092/costos?codigo_slim=${codigo}`,
+      {
+        headers: {
+          Token: "v1qDm0ZuIEKFDIm/SNYKeg==",
+          Accept: "application/json",
+        },
+      }
+    );
+
+    const proveedores = res.data?.result || [];
+
     setProveedoresPorCodigo(prev => ({
       ...prev,
-      [codigo]: [] // Si hay error, poner array vacío
+      [codigo]: proveedores
     }));
+
+    // ✅ CLAVE: regresamos los datos
+    return proveedores;
+
+  } catch (err) {
+    console.error(`Error cargando proveedores para ${codigo}:`, err);
+
+    setProveedoresPorCodigo(prev => ({
+      ...prev,
+      [codigo]: []
+    }));
+
+    return [];
+
   } finally {
     setLoadingProveedores(prev => ({ ...prev, [codigo]: false }));
   }

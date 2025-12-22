@@ -34,7 +34,8 @@ import {
   LocalShipping as LocalShippingIcon,
   Schedule as ScheduleIcon
 } from "@mui/icons-material";
-import * as XLSX from "xlsx";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 import axios from "axios";
 import api from "../../../../services/api.js";
 
@@ -502,7 +503,8 @@ const CheckoutPage = ({
         margin-right: 10px;
       `;
       exportButton.onclick = () => {
-        exportarResumenCotizaciones(exitosos, diasRangoConfig, leadTimesConfig);
+        exportarResumenCotizacionesPDF(exitosos, diasRangoConfig, leadTimesConfig);
+
         document.body.removeChild(modal);
       };
       
@@ -529,7 +531,7 @@ const CheckoutPage = ({
             `¿Deseas descargar un resumen en Excel?`
           );
           if (autoDownload) {
-            exportarResumenCotizaciones(exitosos, diasRangoConfig, leadTimesConfig);
+            exportarResumenCotizacionesPDF(exitosos, diasRangoConfig, leadTimesConfig);
           }
         }, 1000);
       }
@@ -551,159 +553,220 @@ const CheckoutPage = ({
     }
   };
 
-  // 🆕 FUNCIÓN MEJORADA PARA EXPORTAR RESUMEN INCLUYENDO DIAS Y LEADTIME
-  const exportarResumenCotizaciones = (cotizacionesExitosas, diasRangoConfig, leadTimesConfig) => {
-    try {
-      const wb = XLSX.utils.book_new();
-      const fecha = new Date().toISOString().slice(0, 10).replace(/-/g, '');
-     
+ const exportarResumenCotizacionesPDF = async (
+  cotizacionesExitosas,
+  diasRangoConfig,
+  leadTimesConfig
+) => {
+  try {
+    for (const cot of cotizacionesExitosas) {
+      const doc = new jsPDF("p", "mm", "a4");
 
-      // Hoja 2: Detalle por proveedor
-      cotizacionesExitosas.forEach((cot, index) => {
-        const proveedor = Object.values(selectedProveedores).find(p => p.NOMBRE === cot.proveedor);
-        
-        if (proveedor) {
-          const itemsProveedor = cart.filter(item => 
-            selectedProveedores[item.codigo]?.NOMBRE === cot.proveedor
-          );
-          
-          const detalleData = [
-            [`PROVEEDOR: ${cot.proveedor}`],
-            [`FOLIO COTIZACIÓN: ${cot.folio}`],
-            [`FECHA: ${new Date().toLocaleDateString('es-MX')}`],
-            [`DÍAS ANALIZADOS: ${diasRangoConfig}`],
-            [`LEAD TIME: ${cot.leadTime} días`],
-            [''],
-            ['LISTA DE PRODUCTOS:'],
-            ['Código', 'Descripción', 'Cantidad', 'Costo Unitario', 'Total']
-          ];
-          
-          let subtotal = 0;
-          itemsProveedor.forEach(item => {
-            const cantidad = item.cartQuantity || 1;
-            const costoProveedor = selectedProveedores[item.codigo]?.COST || 0;
-            const totalItem = cantidad * costoProveedor;
-            subtotal += totalItem;
-            
-            detalleData.push([
-              item.codigo,
-              item.titulo.substring(0, 50) + (item.titulo.length > 50 ? '...' : ''),
-              cantidad,
-              costoProveedor,
-              totalItem
-            ]);
+      const proveedor = Object.values(selectedProveedores)
+        .find(p => p.NOMBRE === cot.proveedor);
+
+      if (!proveedor) continue;
+
+      const itemsProveedor = cart.filter(
+        item => selectedProveedores[item.codigo]?.NOMBRE === cot.proveedor
+      );
+
+      /* =========================
+         ENCABEZADO
+      ==========================*/
+      doc.setFontSize(16);
+      doc.text(`Cotización – ${cot.proveedor}`, 14, 15);
+
+      doc.setFontSize(10);
+      doc.text(`Folio: ${cot.folio}`, 14, 22);
+      doc.text(`Fecha: ${new Date().toLocaleDateString("es-MX")}`, 14, 27);
+      doc.text(`Días analizados: ${diasRangoConfig}`, 14, 32);
+      doc.text(`Lead Time: ${cot.leadTime} días`, 14, 37);
+
+      let startY = 45;
+
+      /* =========================
+         PREPARAR FILAS
+      ==========================*/
+      const rows = [];
+
+      let subtotal = 0;
+
+      for (const item of itemsProveedor) {
+        const cantidad = item.cartQuantity || 1;
+        const costo = selectedProveedores[item.codigo]?.COST || 0;
+        subtotal += cantidad * costo;
+
+        let imgBase64 = null;
+
+        try {
+          const res = await fetch(item.picture_url);
+          const blob = await res.blob();
+          imgBase64 = await new Promise(resolve => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result);
+            reader.readAsDataURL(blob);
           });
-          
-          // Agregar subtotal
-          detalleData.push(['']);
-          detalleData.push(['', '', '', 'SUBTOTAL:', subtotal]);
-          
-          // Agregar IVA (16%)
-          const iva = subtotal * 0.16;
-          detalleData.push(['', '', '', 'IVA (16%):', iva]);
-          
-          // Agregar total
-          const total = subtotal + iva;
-          detalleData.push(['', '', '', 'TOTAL:', total]);
-          
-          // Agregar información de tiempos
-          detalleData.push(['']);
-          detalleData.push(['INFORMACIÓN DE TIEMPOS:']);
-          detalleData.push(['Días analizados en el rango:', diasRangoConfig]);
-          detalleData.push(['Lead Time estimado:', `${cot.leadTime} días`]);
-          detalleData.push(['Fecha estimada de entrega:', 
-            new Date(Date.now() + (cot.leadTime * 24 * 60 * 60 * 1000)).toLocaleDateString('es-MX')
-          ]);
-          
-          const wsDetalle = XLSX.utils.aoa_to_sheet(detalleData);
-          XLSX.utils.book_append_sheet(wb, wsDetalle, `Proveedor ${index + 1}`);
+        } catch {
+          imgBase64 = null;
+        }
+
+        rows.push({
+          cantidad,
+          titulo: item.titulo,
+          modelo: selectedProveedores[item.codigo]?.MODELO || "N/A",
+          imagen: imgBase64
+        });
+      }
+
+      /* =========================
+         TABLA
+      ==========================*/
+      autoTable(doc, {
+        startY,
+        head: [["Cantidad", "Título", "Modelo", "Imagen"]],
+        body: rows.map(r => [
+          r.cantidad,
+          r.titulo,
+          r.modelo,
+          ""
+        ]),
+        didDrawCell: (data) => {
+          if (data.column.index === 3 && data.row.section === "body") {
+            const img = rows[data.row.index].imagen;
+            if (img) {
+              doc.addImage(
+                img,
+                "JPEG",
+                data.cell.x + 2,
+                data.cell.y + 2,
+                16,
+                16
+              );
+            }
+          }
+        },
+        styles: {
+          minCellHeight: 20,
+          valign: "middle",
+          fontSize: 9
+        },
+        headStyles: {
+          fillColor: [25, 118, 210]
         }
       });
-      
-      // Descargar archivo
-      const fileName = `Resumen_Cotizaciones_${fecha}_${diasRangoConfig}dias.xlsx`;
-      XLSX.writeFile(wb, fileName);
-      
-      alert(`✅ Archivo "${fileName}" descargado exitosamente.`);
-      
-    } catch (error) {
-      console.error('Error exportando resumen:', error);
-      alert('⚠️ No se pudo exportar el resumen, pero las cotizaciones fueron creadas exitosamente.');
-    }
-  };
 
-  const handleExport = () => {
+      /* =========================
+         TOTALES
+      ==========================*/
+      const iva = subtotal * 0.16;
+      const total = subtotal + iva;
+
+      let y = doc.lastAutoTable.finalY + 10;
+
+      doc.setFontSize(11);
+      doc.text(`Subtotal: $${subtotal.toFixed(2)}`, 140, y);
+      doc.text(`IVA (16%): $${iva.toFixed(2)}`, 140, y + 6);
+      doc.text(`Total: $${total.toFixed(2)}`, 140, y + 12);
+
+      /* =========================
+         GUARDAR PDF
+      ==========================*/
+      const fecha = new Date().toISOString().slice(0, 10);
+      doc.save(`Cotizacion_${cot.proveedor}_${cot.folio}_${fecha}.pdf`);
+    }
+
+    alert("✅ PDFs de cotización generados correctamente.");
+
+  } catch (error) {
+    console.error("Error generando PDF:", error);
+    alert("❌ Error al generar los PDFs de cotización.");
+  }
+};
+
+  const handleExportPDF = async () => {
+  const doc = new jsPDF("p", "mm", "a4");
+
+  // Título
+  doc.setFontSize(16);
+  doc.text("Resumen de Productos", 14, 15);
+
+  doc.setFontSize(10);
+  doc.text(`Fecha: ${new Date().toLocaleDateString("es-MX")}`, 14, 22);
+
+  let startY = 30;
+
+  // Construimos filas
+  const rows = [];
+
+  for (const item of cart) {
+    const proveedor = selectedProveedores[item.codigo];
+    const cantidad = item.cartQuantity || 1;
+    const modelo = proveedor?.MODELO || "N/A";
+
+    let imgBase64 = null;
+
     try {
-      // Crear libro de trabajo
-      const wb = XLSX.utils.book_new();
-      
-      // Crear hoja de datos principales
-      const mainData = cart.map((item) => {
-        const proveedor = selectedProveedores[item.codigo];
-        const costoActual = proveedor ? proveedor.COST : 0;
-        const cantidad = item.cartQuantity || 1;
-        const total = costoActual * cantidad;
-        
-        return {
-          'Código': item.codigo,
-          'Producto': item.titulo,
-          'Cantidad': cantidad,
-          'Costo Unitario': costoActual,
-          'Proveedor': proveedor ? proveedor.NOMBRE : 'Original',
-          'Modelo Proveedor': proveedor ? proveedor.MODELO || 'N/A' : 'N/A',
-          'Total': total,
-          'Stock Disponible': item.stock_disponible || 0,
-          'Riesgo Stock': item.riesgo_stock_out || 'BAJO_RIESGO',
-          'Estado': item.STATUS_PUBLICACION || 'active'
-        };
+      // Convertir imagen a base64 (CORS-friendly)
+      const response = await fetch(item.picture_url);
+      const blob = await response.blob();
+
+      imgBase64 = await new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result);
+        reader.readAsDataURL(blob);
       });
-
-      // Convertir datos a hoja de trabajo
-      const ws = XLSX.utils.json_to_sheet(mainData);
-      
-      // Crear hoja de proveedores
-      if (Object.keys(selectedProveedores).length > 0) {
-        const providersData = Object.entries(selectedProveedores).map(([codigoProducto, proveedor]) => {
-          const itemEnCarrito = cart.find(item => item.codigo === codigoProducto);
-          const cantidad = itemEnCarrito ? (itemEnCarrito.cartQuantity || 1) : 1;
-          
-          return {
-            'Producto': proveedor.productoNombre || codigoProducto,
-            'Código Producto': codigoProducto,
-            'Proveedor': proveedor.NOMBRE,
-            'Cantidad': cantidad,
-            'Costo Unitario': proveedor.COST,
-            'Total': proveedor.COST * cantidad,
-            'Modelo': proveedor.MODELO || 'N/A',
-            'SKU': proveedor.SKU || 'N/A',
-            'Unidades Disponibles': proveedor.UNITS || 0,
-            'Contacto': proveedor.CONTACTO || 'N/A',
-            'Notas': proveedor.NOTAS || ''
-          };
-        });
-
-        const wsProviders = XLSX.utils.json_to_sheet(providersData);
-        XLSX.utils.book_append_sheet(wb, wsProviders, 'Proveedores');
-      }
-      
-      // Agregar hoja principal al libro
-      XLSX.utils.book_append_sheet(wb, ws, 'Productos');
-
-      // Generar nombre de archivo
-      const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
-      const fileName = `Resumen_Seleccion_${dateStr}.xlsx`;
-
-      // Generar y descargar archivo
-      XLSX.writeFile(wb, fileName);
-
-      // Mostrar alerta de éxito
-      alert(`✅ Archivo "${fileName}" generado exitosamente.\n\n📊 Resumen:\n• Productos: ${cart.length}\n• Unidades: ${totalsConProveedores.totalItems}\n• Proveedores seleccionados: ${Object.keys(selectedProveedores).length}\n• Ahorro total: ${formatCurrency(totalsConProveedores.totalAhorro)}`);
-
-    } catch (error) {
-      console.error('Error al exportar a Excel:', error);
-      alert('❌ Error al generar el archivo Excel. Por favor, intente nuevamente.');
+    } catch (err) {
+      console.warn("No se pudo cargar imagen:", item.picture_url);
     }
-  };
+
+    rows.push({
+      cantidad,
+      titulo: item.titulo,
+      modelo,
+      imagen: imgBase64
+    });
+  }
+
+  // Tabla con imágenes
+  autoTable(doc, {
+    startY,
+    head: [["Cantidad", "Título", "Modelo", "Imagen"]],
+    body: rows.map(r => [
+      r.cantidad,
+      r.titulo,
+      r.modelo,
+      "" // imagen se pinta después
+    ]),
+    didDrawCell: (data) => {
+      if (data.column.index === 3 && data.row.section === "body") {
+        const img = rows[data.row.index].imagen;
+        if (img) {
+          doc.addImage(
+            img,
+            "JPEG",
+            data.cell.x + 2,
+            data.cell.y + 2,
+            16,
+            16
+          );
+        }
+      }
+    },
+    styles: {
+      minCellHeight: 20,
+      valign: "middle"
+    },
+    headStyles: {
+      fillColor: [25, 118, 210]
+    }
+  });
+
+  // Guardar PDF
+  const fecha = new Date().toISOString().slice(0, 10);
+  doc.save(`Resumen_Productos_${fecha}.pdf`);
+};
+
 
   // 🆕 FUNCIÓN PARA MANEJAR EL PASO SIGUIENTE EN LA CONFIGURACIÓN
   const handleNextConfigStep = () => {
@@ -989,10 +1052,10 @@ const CheckoutPage = ({
           <Button
             variant="outlined"
             startIcon={<DownloadIcon />}
-            onClick={handleExport}
+            onClick={handleExportPDF}
                     sx={{ color: 'white' }}
           >
-            Exportar Excel
+            Exportar PDF
           </Button>
         </Box>
 

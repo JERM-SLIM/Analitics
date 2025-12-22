@@ -136,16 +136,6 @@ const Filters = ({
     return riskLabels[risk] || risk;
   };
 
-  // Obtener etiqueta de clasificación ABC
-  // const getAbcLabel = (abc) => {
-  //   const abcLabels = {
-  //     "all": "Todas",
-  //     "A": "Clase A (Alto impacto)",
-  //     "B": "Clase B (Medio impacto)",
-  //     "C": "Clase C (Bajo impacto)"
-  //   };
-  //   return abcLabels[abc] || abc;
-  // };
 
   // Función para aplicar filtros y buscar
   const handleSearch = () => {

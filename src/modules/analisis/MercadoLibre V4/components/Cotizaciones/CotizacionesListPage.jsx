@@ -1,4 +1,4 @@
-// cotizacionesListPage.jsx - VERSIÓN COMPLETA
+// cotizacionesListPage.jsx - VERSIÓN COMPLETA CON NUEVOS ENDPOINTS
 
 import React, { useState, useEffect } from "react";
 import {
@@ -57,7 +57,6 @@ import api from "../../../../../services/api.js";
 import * as XLSX from "xlsx";
 import useOrdersData from "../../hooks/useOrdersData"; // ajusta ruta
 
-
 const formatCurrency = (value) => {
   return new Intl.NumberFormat("es-MX", {
     style: "currency",
@@ -65,7 +64,6 @@ const formatCurrency = (value) => {
     minimumFractionDigits: 2,
   }).format(Number(value ?? 0));
 };
-
 
 const formatDate = (dateString) => {
   if (!dateString) return "N/A";
@@ -78,108 +76,12 @@ const formatDate = (dateString) => {
   });
 };
 
-const CotizacionesListPage = ({ onBack = {} }) => {
-
-   const {
+const CotizacionesListPage = ({ onBack = () => {} }) => {
+  const {
     proveedoresPorCodigo,
     loadingProveedores,
     fetchProveedores,
   } = useOrdersData();
-
-const handleInitChangeProveedor = async (item, cotizacion) => {
-  if (!item || !cotizacion) return;
-
-  setItemToChange({
-    ...item,
-    proveedorActualNombre: cotizacion.PROVEEDOR_NOMBRE
-  });
-
-  const codigo = item.CODIGO; // ✅ AQUÍ ESTÁ LA CLAVE
-  const proveedorActualId = cotizacion.PROVEEDOR_ID;
-
-  if (!codigo) return;
-
-  if (!proveedoresPorCodigo[codigo]) {
-    await fetchProveedores(codigo);
-  }
-
-  const proveedoresProducto = proveedoresPorCodigo[codigo] || [];
-
-  const proveedoresAlternativos = proveedoresProducto.filter(
-    p => Number(p.PROVEEDOR_ID) !== Number(proveedorActualId)
-  );
-
-  setAvailableProveedores(proveedoresAlternativos);
-  setShowChangeProveedorDialog(true);
-};
-
-
-
-
-
-  // Cambiar proveedor
-// Cambiar proveedor// Cambiar proveedor (usando el endpoint existente)
-const handleChangeProveedor = async () => {
-  if (!itemToChange || !newProveedor || !selectedCotizacion) return;
-
-  if (
-    cantidadCancelar <= 0 ||
-    cantidadCancelar > itemToChange.CANTIDAD_COTIZADA
-  ) {
-    alert(
-      `La cantidad a cancelar debe ser mayor a 0 y menor o igual a ${itemToChange.CANTIDAD_COTIZADA}`
-    );
-    return;
-  }
-
-  try {
-    const proveedorSeleccionado = availableProveedores.find(
-      p => Number(p.PROVEEDOR_ID) === Number(newProveedor)
-    );
-
-    if (!proveedorSeleccionado) {
-      alert("Proveedor no válido");
-      return;
-    }
-
-    const confirmar = window.confirm(
-      `¿Confirmas el cambio de proveedor?\n\n` +
-      `Producto: ${itemToChange.DESCRIPCION}\n` +
-      `Cantidad a cancelar: ${cantidadCancelar}\n` +
-      `Proveedor actual: ${itemToChange.proveedorActualNombre}\n` +
-      `Nuevo proveedor: ${proveedorSeleccionado.NOMBRE}\n\n` +
-      `Costo actual: ${formatCurrency(itemToChange.COSTO)}\n` +
-      `Nuevo costo: ${formatCurrency(proveedorSeleccionado.COST)}`
-    );
-
-    if (!confirmar) return;
-
-    // 🔗 ENDPOINT EXISTENTE
-    await api.post("/web/cotizaciones/cancelar/item/cotizacion", {
-      ID: selectedCotizacion.ID,
-      CODIGO: itemToChange.CODIGO,
-      CANCELADAS: cantidadCancelar,
-      PROVEEDOR: proveedorSeleccionado.NOMBRE
-    });
-
-    alert("✅ Operación realizada correctamente");
-
-    // Limpieza
-    setShowChangeProveedorDialog(false);
-    setNewProveedor("");
-    setCantidadCancelar(1);
-    setItemToChange(null);
-
-    await fetchCotizaciones();
-
-  } catch (err) {
-    console.error(err);
-    alert("❌ Error al procesar la operación");
-  }
-};
-
-
-
 
   const [cotizaciones, setCotizaciones] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -192,40 +94,38 @@ const handleChangeProveedor = async () => {
   const [toDate, setToDate] = useState("");
   const [cantidadCancelar, setCantidadCancelar] = useState(1);
 
-
   // Estados para diálogos
   const [showDetailDialog, setShowDetailDialog] = useState(false);
   const [selectedCotizacion, setSelectedCotizacion] = useState(null);
   const [showChangeProveedorDialog, setShowChangeProveedorDialog] = useState(false);
   const [itemToChange, setItemToChange] = useState(null);
   const [newProveedor, setNewProveedor] = useState("");
-  // const [loadingProveedores, setLoadingProveedores] = useState(false);
   const [availableProveedores, setAvailableProveedores] = useState([]);
   
- 
+  // Nuevos estados para las nuevas funcionalidades
+  const [showDeleteItemDialog, setShowDeleteItemDialog] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState(null);
+  const [showCancelCotizacionDialog, setShowCancelCotizacionDialog] = useState(false);
+  const [cancelMotivo, setCancelMotivo] = useState("");
+  const [showStatusChangeDialog, setShowStatusChangeDialog] = useState(false);
+  const [newStatus, setNewStatus] = useState("");
+
   // Cargar cotizaciones
-const fetchCotizaciones = async () => { 
-  try {
-    setLoading(true);
-
-    const response = await api.get("/web/cotizaciones/obtener/folios");
-
-    const cotizacionesData = Array.isArray(response.data)
-      ? response.data
-      : [];
-
-    setCotizaciones(cotizacionesData);
-    setFilteredCotizaciones(cotizacionesData);
-
-  } catch (error) {
-    console.error("Error fetching cotizaciones:", error);
-    setCotizaciones([]);
-    setFilteredCotizaciones([]);
-  } finally {
-    setLoading(false);
-  }
-};
-
+  const fetchCotizaciones = async () => { 
+    try {
+      setLoading(true);
+      const response = await api.get("/web/cotizaciones/obtener/folios");
+      const cotizacionesData = Array.isArray(response.data) ? response.data : [];
+      setCotizaciones(cotizacionesData);
+      setFilteredCotizaciones(cotizacionesData);
+    } catch (error) {
+      console.error("Error fetching cotizaciones:", error);
+      setCotizaciones([]);
+      setFilteredCotizaciones([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     fetchCotizaciones();
@@ -241,9 +141,9 @@ const fetchCotizaciones = async () => {
     } else if (selectedTab === 2) {
       filtered = filtered.filter(c => c.STATUS === "APROBADA");
     } else if (selectedTab === 3) {
-      filtered = filtered.filter(c => c.STATUS === "RECHAZADA");
+      filtered = filtered.filter(c => c.STATUS === "CANCELADA");
     } else if (selectedTab === 4) {
-      filtered = filtered.filter(c => c.STATUS === "COMPLETADA");
+      filtered = filtered.filter(c => c.STATUS === "PAGADO");
     }
     
     // Filtrar por búsqueda
@@ -280,7 +180,7 @@ const fetchCotizaciones = async () => {
     
     if (toDate) {
       const to = new Date(toDate);
-      to.setHours(23, 59, 59, 999); // Fin del día
+      to.setHours(23, 59, 59, 999);
       filtered = filtered.filter(c => {
         const fechaCreacion = new Date(c.FECHA_CREACION);
         return fechaCreacion <= to;
@@ -289,6 +189,219 @@ const fetchCotizaciones = async () => {
     
     setFilteredCotizaciones(filtered);
   }, [cotizaciones, selectedTab, searchTerm, statusFilter, proveedorFilter, fromDate, toDate]);
+
+  // Iniciar cambio de proveedor
+  const handleInitChangeProveedor = async (item, cotizacion) => {
+  if (!item || !cotizacion) return;
+
+  setItemToChange({
+    ...item,
+    proveedorActualNombre: cotizacion.PROVEEDOR_NOMBRE
+  });
+
+  const codigo = item.CODIGO;
+  const proveedorActualId = cotizacion.PROVEEDOR_ID;
+
+  if (!codigo) return;
+
+  let proveedoresProducto = proveedoresPorCodigo[codigo];
+
+  // ⬇️ SI NO EXISTEN, LOS CARGA Y ESPERA
+  if (!proveedoresProducto) {
+    proveedoresProducto = await fetchProveedores(codigo);
+  }
+
+  const proveedoresAlternativos = proveedoresProducto.filter(
+    p => Number(p.PROVEEDOR_ID) !== Number(proveedorActualId)
+  );
+
+  setAvailableProveedores(proveedoresAlternativos);
+
+  // ✅ SOLO SE ABRE CUANDO YA ESTÁ TODO LISTO
+  setShowChangeProveedorDialog(true);
+};
+
+
+  // Cambiar proveedor
+  const handleChangeProveedor = async () => {
+    if (!itemToChange || !newProveedor || !selectedCotizacion) return;
+
+    if (cantidadCancelar <= 0 || cantidadCancelar > itemToChange.CANTIDAD_COTIZADA) {
+      alert(
+        `La cantidad a cancelar debe ser mayor a 0 y menor o igual a ${itemToChange.CANTIDAD_COTIZADA}`
+      );
+      return;
+    }
+
+    try {
+      const proveedorSeleccionado = availableProveedores.find(
+        p => Number(p.PROVEEDOR_ID) === Number(newProveedor)
+      );
+
+      if (!proveedorSeleccionado) {
+        alert("Proveedor no válido");
+        return;
+      }
+
+      const confirmar = window.confirm(
+        `¿Confirmas el cambio de proveedor?\n\n` +
+        `Producto: ${itemToChange.DESCRIPCION}\n` +
+        `Cantidad a cancelar: ${cantidadCancelar}\n` +
+        `Proveedor actual: ${itemToChange.proveedorActualNombre}\n` +
+        `Nuevo proveedor: ${proveedorSeleccionado.NOMBRE}\n\n` +
+        `Costo actual: ${formatCurrency(itemToChange.COSTO)}\n` +
+        `Nuevo costo: ${formatCurrency(proveedorSeleccionado.COST)}`
+      );
+
+      if (!confirmar) return;
+
+      await api.post("/web/cotizaciones/cancelar/item/cotizacion", {
+        ID: selectedCotizacion.ID,
+        CODIGO: itemToChange.CODIGO,
+        CANCELADAS: cantidadCancelar,
+        PROVEEDOR: proveedorSeleccionado.NOMBRE
+      });
+
+      alert("✅ Operación realizada correctamente");
+      
+      setShowChangeProveedorDialog(false);
+      setNewProveedor("");
+      setCantidadCancelar(1);
+      setItemToChange(null);
+      await fetchCotizaciones();
+
+    } catch (err) {
+      console.error(err);
+      alert("❌ Error al procesar la operación");
+    }
+  };
+
+  // 1. ELIMINAR ITEM DE COTIZACIÓN
+  const handleDeleteItem = async () => {
+    if (!itemToDelete || !selectedCotizacion) {
+      alert("No se ha seleccionado un item para eliminar");
+      return;
+    }
+
+    try {
+      const confirmar = window.confirm(
+        `¿Confirmas eliminar el siguiente item?\n\n` +
+        `Código: ${itemToDelete.CODIGO}\n` +
+        `Descripción: ${itemToDelete.DESCRIPCION}\n` +
+        `Cantidad: ${itemToDelete.CANTIDAD_COTIZADA}\n` +
+        `Costo: ${formatCurrency(itemToDelete.COSTO_NUEVO || itemToDelete.COSTO)}`
+      );
+
+      if (!confirmar) return;
+
+      await api.post("/web/cotizaciones/eliminar/item/cotizacion", {
+        ID: selectedCotizacion.ID,
+        CODIGO: itemToDelete.CODIGO
+      });
+
+      alert("✅ Item eliminado correctamente");
+      
+      setShowDeleteItemDialog(false);
+      setItemToDelete(null);
+      await fetchCotizaciones();
+      
+      if (showDetailDialog) {
+        const updatedCotizacion = cotizaciones.find(c => c.ID === selectedCotizacion.ID);
+        setSelectedCotizacion(updatedCotizacion);
+      }
+
+    } catch (err) {
+      console.error("Error eliminando item:", err);
+      alert("❌ Error al eliminar el item");
+    }
+  };
+
+  // 2. CANCELAR COTIZACIÓN COMPLETA
+  const handleCancelCotizacion = async () => {
+    if (!selectedCotizacion || !cancelMotivo.trim()) {
+      alert("Debes proporcionar un motivo para cancelar");
+      return;
+    }
+
+    try {
+      const confirmar = window.confirm(
+        `¿Confirmas cancelar la cotización completa?\n\n` +
+        `Folio: ${selectedCotizacion.FOLIO}\n` +
+        `Proveedor: ${selectedCotizacion.PROVEEDOR_NOMBRE}\n` +
+        `Total: ${formatCurrency(selectedCotizacion.TOTAL)}\n` +
+        `Motivo: ${cancelMotivo}`
+      );
+
+      if (!confirmar) return;
+
+      await api.post("/web/cotizaciones/cancelar/cotizacion", {
+        ID: selectedCotizacion.ID,
+        MOTIVO: cancelMotivo
+      });
+
+      alert("✅ Cotización cancelada correctamente");
+      
+      setShowCancelCotizacionDialog(false);
+      setCancelMotivo("");
+      await fetchCotizaciones();
+      
+      if (showDetailDialog) {
+        setShowDetailDialog(false);
+      }
+
+    } catch (err) {
+      console.error("Error cancelando cotización:", err);
+      alert("❌ Error al cancelar la cotización");
+    }
+  };
+
+  // 3. CAMBIAR STATUS DE COTIZACIÓN
+  const handleChangeStatus = async () => {
+    if (!selectedCotizacion || !newStatus) {
+      alert("Debes seleccionar un nuevo estado");
+      return;
+    }
+
+    try {
+      const statusOptions = {
+        "PAGADO": "Marcar como Pagado",
+        "ENVIADO": "Marcar como Enviado",
+        "RECIBIDO": "Marcar como Recibido",
+        "PENDIENTE": "Marcar como Pendiente",
+        "APROBADA": "Marcar como Aprobada",
+        "RECHAZADA": "Marcar como Rechazada"
+      };
+
+      const confirmar = window.confirm(
+        `¿Confirmas cambiar el estado de la cotización?\n\n` +
+        `Folio: ${selectedCotizacion.FOLIO}\n` +
+        `Estado actual: ${selectedCotizacion.STATUS}\n` +
+        `Nuevo estado: ${statusOptions[newStatus] || newStatus}`
+      );
+
+      if (!confirmar) return;
+
+      await api.post("/web/cotizaciones/recalcular/status/cotizacion", {
+        ID: selectedCotizacion.ID,
+        STATUS: newStatus
+      });
+
+      alert("✅ Estado actualizado correctamente");
+      
+      setShowStatusChangeDialog(false);
+      setNewStatus("");
+      await fetchCotizaciones();
+      
+      const updatedCotizacion = cotizaciones.find(c => c.ID === selectedCotizacion.ID);
+      if (updatedCotizacion) {
+        setSelectedCotizacion(updatedCotizacion);
+      }
+
+    } catch (err) {
+      console.error("Error cambiando estado:", err);
+      alert("❌ Error al cambiar el estado");
+    }
+  };
 
   // Obtener proveedores únicos para el filtro
   const uniqueProveedores = Array.from(new Set(
@@ -304,6 +417,9 @@ const fetchCotizaciones = async () => {
       case "APROBADA": return "success";
       case "RECHAZADA": return "error";
       case "COMPLETADA": return "info";
+      case "PAGADO": return "secondary";
+      case "ENVIADO": return "primary";
+      case "RECIBIDO": return "success";
       default: return "default";
     }
   };
@@ -315,6 +431,9 @@ const fetchCotizaciones = async () => {
       case "APROBADA": return <CheckCircleIcon />;
       case "RECHAZADA": return <CancelIcon />;
       case "COMPLETADA": return <CheckCircleIcon />;
+      case "PAGADO": return <AttachMoneyIcon />;
+      case "ENVIADO": return <LocalShippingIcon />;
+      case "RECIBIDO": return <InventoryIcon />;
       default: return null;
     }
   };
@@ -331,7 +450,6 @@ const fetchCotizaciones = async () => {
       const wb = XLSX.utils.book_new();
       const fecha = new Date().toISOString().slice(0, 10).replace(/-/g, '');
       
-      // Hoja de resumen
       const resumenData = [
         ['REPORTE DE COTIZACIONES'],
         ['Fecha de generación:', new Date().toLocaleDateString('es-MX')],
@@ -356,7 +474,6 @@ const fetchCotizaciones = async () => {
       const wsResumen = XLSX.utils.aoa_to_sheet(resumenData);
       XLSX.utils.book_append_sheet(wb, wsResumen, 'Resumen');
       
-      // Hoja detallada por cotización
       filteredCotizaciones.forEach((cot, index) => {
         const detalleData = [
           [`COTIZACIÓN: ${cot.FOLIO}`],
@@ -403,7 +520,8 @@ const fetchCotizaciones = async () => {
     total: cotizaciones.length,
     pendientes: cotizaciones.filter(c => c.STATUS === "PENDIENTE").length,
     aprobadas: cotizaciones.filter(c => c.STATUS === "APROBADA").length,
-    completadas: cotizaciones.filter(c => c.STATUS === "COMPLETADA").length,
+    pagados: cotizaciones.filter(c => c.STATUS === "PAGADO").length,
+    canceladas : cotizaciones.filter(c => c.STATUS === "CANCELADA").length,
     totalMonto: cotizaciones.reduce((sum, c) => sum + Number(c.TOTAL || 0), 0)
   };
 
@@ -569,8 +687,8 @@ const fetchCotizaciones = async () => {
                 <MenuItem value="all">Todos los estados</MenuItem>
                 <MenuItem value="PENDIENTE">Pendiente</MenuItem>
                 <MenuItem value="APROBADA">Aprobada</MenuItem>
-                <MenuItem value="RECHAZADA">Rechazada</MenuItem>
-                <MenuItem value="COMPLETADA">Completada</MenuItem>
+                <MenuItem value="CANCELADA">Cancelada</MenuItem>
+                <MenuItem value="PAGADO">Pagado</MenuItem>
               </Select>
             </FormControl>
           </Grid>
@@ -656,25 +774,26 @@ const fetchCotizaciones = async () => {
           />
           <Tab 
             label={
-              <Badge badgeContent={cotizaciones.filter(c => c.STATUS === "RECHAZADA").length} color="error" showZero>
+              <Badge badgeContent={stats.canceladas} color="error" showZero>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                   <CancelIcon fontSize="small" />
-                  Rechazadas
+                  Canceladas
                 </Box>
               </Badge>
             }
           />
           <Tab 
             label={
-              <Badge badgeContent={stats.completadas} color="info" showZero>
+              <Badge badgeContent={stats.pagados} color="info" showZero>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                   <CheckCircleIcon fontSize="small" />
-                  Completadas
+                  Pagadas
                 </Box>
               </Badge>
             }
           />
         </Tabs>
+
       </Paper>
 
       {/* Tabla de cotizaciones */}
@@ -705,8 +824,7 @@ const fetchCotizaciones = async () => {
                 <TableRow>
                   <TableCell colSpan={8} align="center" sx={{ py: 4 }}>
                     <Typography color="textSecondary">
-                      No se encontraron cotizaciones con los filtros aplicados
-                    </Typography>
+                      No se encontraron cotizaciones con los filtros aplicados</Typography>
                   </TableCell>
                 </TableRow>
               ) : (
@@ -790,6 +908,10 @@ const fetchCotizaciones = async () => {
                               size="small"
                               color="error"
                               title="Eliminar"
+                              onClick={() => {
+                                setSelectedCotizacion(cotizacion);
+                                setShowCancelCotizacionDialog(true);
+                              }}
                             >
                               <DeleteIcon fontSize="small" />
                             </IconButton>
@@ -931,7 +1053,7 @@ const fetchCotizaciones = async () => {
                         </TableCell>
                         
                         <TableCell align="right">
-                          <Typography variant="body2" sx={{ textDecoration: 'line-through', color: '#757575' }}>
+                          <Typography variant="body2" sx={{ fontWeight: 'bold', color: 'black' }}>
                             {formatCurrency(item.COSTO)}
                           </Typography>
                         </TableCell>
@@ -948,18 +1070,32 @@ const fetchCotizaciones = async () => {
                           </Typography>
                         </TableCell>
                         
-                        
                         <TableCell align="center">
-                          
-                         <IconButton
-  size="small"
-  onClick={() => handleInitChangeProveedor(item, selectedCotizacion)}
-  title="Cambiar proveedor"
-  disabled={!selectedCotizacion || selectedCotizacion.STATUS !== "PENDIENTE"}
->
-  <SwapHorizIcon fontSize="small" />
-</IconButton>
-
+                          <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
+                            {/* Botón para eliminar item */}
+                            <IconButton
+                              size="small"
+                              color="error"
+                              onClick={() => {
+                                setItemToDelete(item);
+                                setShowDeleteItemDialog(true);
+                              }}
+                              title="Eliminar item"
+                              disabled={selectedCotizacion.STATUS !== "PENDIENTE"}
+                            >
+                              <DeleteIcon fontSize="small" />
+                            </IconButton>
+                            
+                            {/* Botón para cambiar proveedor */}
+                            <IconButton
+                              size="small"
+                              onClick={() => handleInitChangeProveedor(item, selectedCotizacion)}
+                              title="Cambiar proveedor"
+                              disabled={!selectedCotizacion || selectedCotizacion.STATUS !== "PENDIENTE"}
+                            >
+                              <SwapHorizIcon fontSize="small" />
+                            </IconButton>
+                          </Box>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -985,9 +1121,28 @@ const fetchCotizaciones = async () => {
                 Cerrar
               </Button>
               
+              {/* Botón para cancelar cotización completa */}
+              <Button 
+                color="error" 
+                variant="outlined"
+                onClick={() => setShowCancelCotizacionDialog(true)}
+                disabled={selectedCotizacion.STATUS !== "PENDIENTE"}
+              >
+                Cancelar Cotización
+              </Button>
+              
+              {/* Botón para cambiar estado */}
+              <Button 
+                color="primary" 
+                variant="outlined"
+                onClick={() => setShowStatusChangeDialog(true)}
+              >
+                Cambiar Estado
+              </Button>
+              
               {selectedCotizacion.STATUS === "PENDIENTE" && (
                 <>
-                  <Button color="primary" variant="outlined">
+                  <Button color="primary" variant="contained">
                     Aprobar
                   </Button>
                   <Button color="error" variant="outlined">
@@ -1003,7 +1158,12 @@ const fetchCotizaciones = async () => {
       {/* Diálogo para cambiar proveedor */}
       <Dialog
         open={showChangeProveedorDialog}
-        onClose={() => setShowChangeProveedorDialog(false)}
+        onClose={() => {
+          setShowChangeProveedorDialog(false);
+          setNewProveedor("");
+          setCantidadCancelar(1);
+          setItemToChange(null);
+        }}
         maxWidth="sm"
         fullWidth
       >
@@ -1019,7 +1179,6 @@ const fetchCotizaciones = async () => {
         </DialogTitle>
         
         <DialogContent sx={{ mt: 2 }}>
-          
           {itemToChange && (
             <>
               <Alert severity="info" sx={{ mb: 3 }}>
@@ -1048,7 +1207,7 @@ const fetchCotizaciones = async () => {
                 </Box>
               </Box>
               
-              {loadingProveedores[itemToChange?.CODIGO]  ? (
+              {loadingProveedores[itemToChange?.CODIGO] ? (
                 <Box sx={{ textAlign: 'center', py: 4 }}>
                   <CircularProgress />
                   <Typography sx={{ mt: 2 }}>Cargando proveedores alternativos...</Typography>
@@ -1100,19 +1259,20 @@ const fetchCotizaciones = async () => {
                       ))}
                     </Select>
                   </FormControl>
+                  
                   <TextField
-  label="Cantidad a cancelar"
-  type="number"
-  fullWidth
-  value={cantidadCancelar}
-  onChange={(e) => setCantidadCancelar(Number(e.target.value))}
-  inputProps={{
-    min: 1,
-    max: itemToChange?.CANTIDAD_COTIZADA
-  }}
-  sx={{ mt: 2 }}
-  helperText={`Debe ser entre 1 y ${itemToChange?.CANTIDAD_COTIZADA}`}
-/>
+                    label="Cantidad a cancelar"
+                    type="number"
+                    fullWidth
+                    value={cantidadCancelar}
+                    onChange={(e) => setCantidadCancelar(Number(e.target.value))}
+                    inputProps={{
+                      min: 1,
+                      max: itemToChange?.CANTIDAD_COTIZADA
+                    }}
+                    sx={{ mt: 2 }}
+                    helperText={`Debe ser entre 1 y ${itemToChange?.CANTIDAD_COTIZADA}`}
+                  />
 
                   {newProveedor && (
                     <Box sx={{ mt: 3, p: 2, bgcolor: '#e8f5e8', borderRadius: 1 }}>
@@ -1142,8 +1302,6 @@ const fetchCotizaciones = async () => {
                       </Box>
                     </Box>
                   )}
-
-
                 </>
               )}
             </>
@@ -1151,7 +1309,12 @@ const fetchCotizaciones = async () => {
         </DialogContent>
         
         <DialogActions sx={{ p: 3 }}>
-          <Button onClick={() => setShowChangeProveedorDialog(false)}>
+          <Button onClick={() => {
+            setShowChangeProveedorDialog(false);
+            setNewProveedor("");
+            setCantidadCancelar(1);
+            setItemToChange(null);
+          }}>
             Cancelar
           </Button>
           
@@ -1164,6 +1327,275 @@ const fetchCotizaciones = async () => {
               Confirmar Cambio
             </Button>
           )}
+        </DialogActions>
+      </Dialog>
+
+      {/* Diálogo para eliminar item */}
+      <Dialog
+        open={showDeleteItemDialog}
+        onClose={() => {
+          setShowDeleteItemDialog(false);
+          setItemToDelete(null);
+        }}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle sx={{ 
+          bgcolor: 'error.main', 
+          color: 'white',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 1
+        }}>
+          <DeleteIcon />
+          Eliminar Item de Cotización
+        </DialogTitle>
+        
+        <DialogContent sx={{ mt: 2 }}>
+          {itemToDelete && (
+            <>
+              <Alert severity="warning" sx={{ mb: 3 }}>
+                <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
+                  ¡ADVERTENCIA! Esta acción no se puede deshacer.
+                </Typography>
+              </Alert>
+              
+              <Box sx={{ p: 2, border: '1px solid #ffcdd2', borderRadius: 1, bgcolor: '#ffebee' }}>
+                <Typography variant="subtitle2" gutterBottom>
+                  ITEM A ELIMINAR
+                </Typography>
+                <Grid container spacing={1}>
+                  <Grid item xs={6}>
+                    <Typography variant="caption" color="textSecondary">Código:</Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
+                      {itemToDelete.CODIGO}
+                    </Typography>
+                  </Grid>
+                  <Grid item xs={6}>
+                    <Typography variant="caption" color="textSecondary">Cantidad:</Typography>
+                    <Typography variant="body2">
+                      {itemToDelete.CANTIDAD_COTIZADA} unidades
+                    </Typography>
+                  </Grid>
+                  <Grid item xs={12}>
+                    <Typography variant="caption" color="textSecondary">Descripción:</Typography>
+                    <Typography variant="body2">
+                      {itemToDelete.DESCRIPCION}
+                    </Typography>
+                  </Grid>
+                  <Grid item xs={12}>
+                    <Typography variant="caption" color="textSecondary">Costo total:</Typography>
+                    <Typography variant="body2" sx={{ color: '#d32f2f' }}>
+                      {formatCurrency(
+                        (itemToDelete.COSTO_NUEVO || itemToDelete.COSTO) * itemToDelete.CANTIDAD_COTIZADA
+                      )}
+                    </Typography>
+                  </Grid>
+                </Grid>
+              </Box>
+              
+              <Typography variant="body2" sx={{ mt: 2, color: '#d32f2f' }}>
+                Esta acción eliminará permanentemente este item de la cotización.
+              </Typography>
+            </>
+          )}
+        </DialogContent>
+        
+        <DialogActions sx={{ p: 3 }}>
+          <Button onClick={() => {
+            setShowDeleteItemDialog(false);
+            setItemToDelete(null);
+          }}>
+            Cancelar
+          </Button>
+          <Button 
+            variant="contained" 
+            color="error"
+            onClick={handleDeleteItem}
+          >
+            Confirmar Eliminación
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Diálogo para cancelar cotización completa */}
+      <Dialog
+        open={showCancelCotizacionDialog}
+        onClose={() => {
+          setShowCancelCotizacionDialog(false);
+          setCancelMotivo("");
+        }}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle sx={{ 
+          bgcolor: 'error.main', 
+          color: 'white',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 1
+        }}>
+          <CancelIcon />
+          Cancelar Cotización Completa
+        </DialogTitle>
+        
+        <DialogContent sx={{ mt: 2 }}>
+          {selectedCotizacion && (
+            <>
+              <Alert severity="error" sx={{ mb: 3 }}>
+                <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
+                  ¡ATENCIÓN! Esta acción cancelará TODA la cotización.
+                </Typography>
+              </Alert>
+              
+              <Box sx={{ mb: 3, p: 2, border: '1px solid #ffcdd2', borderRadius: 1 }}>
+                <Typography variant="subtitle2" color="textSecondary" gutterBottom>
+                  INFORMACIÓN DE LA COTIZACIÓN
+                </Typography>
+                <Grid container spacing={1}>
+                  <Grid item xs={6}>
+                    <Typography variant="body2">
+                      <strong>Folio:</strong> {selectedCotizacion.FOLIO}
+                    </Typography>
+                  </Grid>
+                  <Grid item xs={6}>
+                    <Typography variant="body2">
+                      <strong>Proveedor:</strong> {selectedCotizacion.PROVEEDOR_NOMBRE}
+                    </Typography>
+                  </Grid>
+                  <Grid item xs={6}>
+                    <Typography variant="body2">
+                      <strong>Total:</strong> {formatCurrency(selectedCotizacion.TOTAL)}
+                    </Typography>
+                  </Grid>
+                  <Grid item xs={6}>
+                    <Typography variant="body2">
+                      <strong>Items:</strong> {selectedCotizacion.ITEMS?.length || 0}
+                    </Typography>
+                  </Grid>
+                </Grid>
+              </Box>
+              
+              <TextField
+                label="Motivo de cancelación"
+                multiline
+                rows={3}
+                fullWidth
+                value={cancelMotivo}
+                onChange={(e) => setCancelMotivo(e.target.value)}
+                placeholder="Describe el motivo de la cancelación..."
+                required
+                helperText="Este motivo quedará registrado en el historial"
+              />
+              
+              <Typography variant="body2" sx={{ mt: 2, color: '#d32f2f', fontStyle: 'italic' }}>
+                Nota: Esta acción afectará a todos los items de la cotización.
+              </Typography>
+            </>
+          )}
+        </DialogContent>
+        
+        <DialogActions sx={{ p: 3 }}>
+          <Button onClick={() => {
+            setShowCancelCotizacionDialog(false);
+            setCancelMotivo("");
+          }}>
+            Cancelar
+          </Button>
+          <Button 
+            variant="contained" 
+            color="error"
+            onClick={handleCancelCotizacion}
+            disabled={!cancelMotivo.trim()}
+          >
+            Confirmar Cancelación
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Diálogo para cambiar estado */}
+      <Dialog
+        open={showStatusChangeDialog}
+        onClose={() => {
+          setShowStatusChangeDialog(false);
+          setNewStatus("");
+        }}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle sx={{ 
+          bgcolor: 'info.main', 
+          color: 'white',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 1
+        }}>
+          <SwapHorizIcon />
+          Cambiar Estado de Cotización
+        </DialogTitle>
+        
+        <DialogContent sx={{ mt: 2 }}>
+          {selectedCotizacion && (
+            <>
+              <Box sx={{ mb: 3, p: 2, border: '1px solid #bbdefb', borderRadius: 1, bgcolor: '#e3f2fd' }}>
+                <Typography variant="body2">
+                  <strong>Folio:</strong> {selectedCotizacion.FOLIO}
+                </Typography>
+                <Typography variant="body2">
+                  <strong>Estado actual:</strong> 
+                  <Chip
+                    label={selectedCotizacion.STATUS}
+                    color={getStatusColor(selectedCotizacion.STATUS)}
+                    size="small"
+                    sx={{ ml: 1 }}
+                  />
+                </Typography>
+              </Box>
+              
+              <FormControl fullWidth>
+                <InputLabel>Nuevo estado</InputLabel>
+                <Select
+                  value={newStatus}
+                  onChange={(e) => setNewStatus(e.target.value)}
+                  label="Nuevo estado"
+                >
+                  <MenuItem value="PAGADO">PAGADO</MenuItem>
+                  <MenuItem value="PENDIENTE">PENDIENTE</MenuItem>
+                  <MenuItem value="APROBADA">APROBADA</MenuItem>
+                  <MenuItem value="CANCELADO">CANCELADO</MenuItem>
+                </Select>
+              </FormControl>
+              
+              <Box sx={{ mt: 2, p: 2, bgcolor: '#f5f5f5', borderRadius: 1 }}>
+                <Typography variant="caption" color="textSecondary" gutterBottom>
+                  DESCRIPCIÓN DE ESTADOS:
+                </Typography>
+                <Typography variant="caption" component="div">
+                  • <strong>PAGADO:</strong> La cotización ha sido pagada<br/>
+                  • <strong>PENDIENTE:</strong> Esperando aprobación<br/>
+                  • <strong>APROBADA:</strong> Aprobada para procesar<br/>
+                  • <strong>CANCELADO:</strong> Cancelada por algún motivo<br/>
+                </Typography>
+              </Box>
+            </>
+          )}
+        </DialogContent>
+        
+        <DialogActions sx={{ p: 3 }}>
+          <Button onClick={() => {
+            setShowStatusChangeDialog(false);
+            setNewStatus("");
+          }}>
+            Cancelar
+          </Button>
+          <Button 
+            variant="contained" 
+            color="primary"
+            onClick={handleChangeStatus}
+            disabled={!newStatus}
+          >
+            Cambiar Estado
+          </Button>
         </DialogActions>
       </Dialog>
     </Container>
